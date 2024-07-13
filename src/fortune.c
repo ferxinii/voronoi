@@ -43,31 +43,22 @@ event_T *initialize_queue(const seed_T *seeds, int N)
     //          |event|  -->   |event|  -->  ......  |event|  -->  NULL
     //ID:         ----0----      ----1----            ----k-1---    k
     event_T *current = head;
-    event_T *previous;
-    int insert_id = 0;
-    while (seeds[ii].y < current->y) {
-      insert_id ++;
-      previous = current;
-      if (current->next) {
-        current = current->next;
-      } else {
-        break;
-      }
+    event_T *next = current->next;
+    while (next && seeds[ii].y < next->y){
+      current = next;
+      next = current->next;
     }
 
     // Insert event in queue:
-    //     .....  --> |previous|  -->  |current| -->  ......
-    //     .....  --> |previous|  -->  |new|  -->  |current| -->  .....
+    //     .....  --> |current|  -->  |next| -->  ......
+    //     .....  --> |current|  -->  |new|  -->  |next| -->  .....
     event_T *new = new_event(type, seeds[ii].x, seeds[ii].y);
-    if (insert_id == 0) {
+    if (current == head && new->y > head->y) {
       new->next = current;
       head = new;
-    } else if (!previous->next) {
-      new->next = NULL;
-      previous->next = new;
     } else {
-      new->next = current;
-      previous->next = new;
+      new->next = next;
+      current->next = new;
     }
   }
 
