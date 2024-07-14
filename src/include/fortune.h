@@ -30,27 +30,39 @@ typedef struct seed_T {
   double y;
 } seed_T;
 
-
 seed_T *random_seeds(double size, int N);
 
 
-// The beachline struct consists of the sorted sequence of sites whose arcs 
+// The beachline struct consists of the sorted sequence of foci whose arcs 
 // form the current beachline. It is updated with the events.
-// Linked list of arcs, where the arcs are simply the seeds.
-typedef struct beachline_T {
-  seed_T arc;
-  seed_T *arc_right;
-} beachline_T;
+// Linked list of arcs, where the arcs are simply the foci.
 
+typedef struct focus_T {
+  double x;
+  double y;
+} focus_T;
 
-seed_T *find_arc_above(const beachline_T *bline, const seed_T seed);
+typedef struct arc_T {
+  struct focus_T focus;
+  struct arc_T *left;
+  struct arc_T *right;
+} arc_T;
 
-seed_T *insert_and_split(beachline_T *bline, 
-                         const seed_T *exisint_arc, 
-                         const seed_T *new_arc);
+void print_beachline(const arc_T *bline);
 
-void delete_arc(beachline_T *bline, const seed_T *arc);
+arc_T *leftmost_arc(const arc_T *bline);
 
+arc_T *new_arc(focus_T focus);
+
+double parabola_y(focus_T f, double directrix, double x);
+
+double x_intersection(focus_T f1, focus_T f2, double directrix_y);
+
+arc_T *find_arc_above(const arc_T *bline, const focus_T focus);
+
+arc_T *insert_arc(arc_T **bline, const focus_T focus);
+
+void delete_arc(arc_T *bline, const seed_T *arc);
 
 
 // Event queue:  linked list of events
@@ -70,17 +82,39 @@ event_T *new_event(enum event_type type, double x, double y);
 
 event_T *initialize_queue(const seed_T *seeds, int N);
 
+event_T pop_event(event_T **queue);
+
 void print_queue(const event_T *queue);
 
 void print_event(const event_T *event);
 
 
 // Voronoi diagram:
-/*
-typedef struct vor_diagram {
+typedef struct vertex_T {
+  double x, y;
+  int ii;
+  struct edge_T *inc_edge;
+} vertex_T;
 
-} vor_diagram;
-*/
+typedef struct edge_T {
+  struct edge_T *twin;
+  struct vertex_T *start;
+  struct face_T *inc_face;  // Left face
+  struct edge_T *next;
+  struct edge_T *prev;
+} edge_T;
+
+typedef struct face_T {
+  struct edge_T *edges;
+  seed_T *seed;
+} face_T;
+
+typedef struct vor_diagram_T {
+  int N_faces;
+  struct face_T *faces;
+} vor_diagram_T;
+
+vor_diagram_T *fortune_algorithm(seed_T *seeds, int N);
 
 
 #endif
