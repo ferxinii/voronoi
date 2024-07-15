@@ -48,6 +48,8 @@ typedef struct arc_T {
   struct arc_T *right;
 } arc_T;
 
+typedef arc_T *beachline_T;
+
 void print_beachline(const arc_T *bline);
 
 arc_T *new_arc(focus_T focus);
@@ -90,6 +92,8 @@ event_T pop_event(event_T **queue);
 void print_queue(const event_T *queue);
 
 void print_event(const event_T *event);
+
+void add_vertex_events(event_T **queue, const arc_T *arc);
 
 
 // Voronoi diagram:

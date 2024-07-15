@@ -173,31 +173,42 @@ double parabola_y(focus_T f, double directrix, double x)
 
 parab_intersect_T x_intersection(focus_T f1, focus_T f2, double directrix)
 {
-  // ASSUME f1.x < f2.x
   double k = directrix;
   double a = f1.x;
   double b = f1.y;
   double c = f2.x;
   double d = f2.y;
-  
+
+  double A, B, C;
+  parab_intersect_T out;
+
   if (d == b && d == directrix) {
     printf("ATTENTION!! Critical case for intersection... d = b\n");
     exit(1);
-  }
-  
-  double B = 2 * (c*b - a*d) / (d - b) + 2 * (a - c) / (d - b) * k;
-  double C = a*a*(d-k)/(d-b) - c*c*(b-k)/(d-b) - (b-k)*(d-k);
-  
-  if (B*B - 4*C <= 0) {
-    printf("ATTENTION!! NEGATIVE DISCRIMINANT......\n");
-    printf("Is directrix < f1.y, f2.y??\n");
+  } else if (a == b && c == d) { 
+    printf("ATTENTION!! Same parabolas, infinite intersections\n");
     exit(1);
+  } else if (d == b) {
+    //B = 2 * (c*b - a*d + a*k - c*k);
+    //C = a*a*(d-k) - c*c*(b-k);
+    // Actually, it simplifies further...
+    out.x_left = (a+c)/2;
+    out.x_right = out.x_left;
+  } else {
+    A = d - b; 
+    B = 2 * (c*b - a*d + a*k - c*k);
+    C = a*a*(d-k) - c*c*(b-k) - (b-k)*(d-k)*(d-b);
+    
+    if (B*B - 4*A*C <= 0) {
+      printf("ATTENTION!! NEGATIVE DISCRIMINANT......\n");
+      printf("Is directrix < f1.y, f2.y??\n");
+      exit(1);
+    }
+    
+    out.x_left = (-B - sqrt(B*B - 4*A*C)) / (2*A);
+    out.x_right = (-B + sqrt(B*B - 4*A*C)) / (2*A);
   }
-  
-  parab_intersect_T out;
-  out.x_left = (-B - sqrt(B*B - 4*C)) / 2;
-  out.x_right = (-B + sqrt(B*B - 4*C)) / 2;
-
+  //printf("%f, %f\n", out.x_left, out.x_right);
   return out;
 }
 
