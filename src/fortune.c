@@ -213,7 +213,7 @@ parab_intersect_T x_intersection(focus_T f1, focus_T f2, double directrix)
 }
 
 
-arc_T *find_arc_above(arc_T *bline, const focus_T focus)
+arc_T *find_arc_above(const beachline_T bline, const focus_T focus)
 {
   // Return pointer to arc of beachline that lies directly above new focus.
   // This is done by comparing focus.x with intersections of existing arcs
@@ -226,60 +226,61 @@ arc_T *find_arc_above(arc_T *bline, const focus_T focus)
   parab_intersect_T cross_left, cross_right;
   
   arc_T *left = bline->left;
+  arc_T *current = bline;
   arc_T *right = bline->right;
 
   while (1) {
     if (!left && !right) {
       // ONLY ONE ARC
-      return bline;
+      return current;
     } else if (!left && right) {
       // ONLY 2 ARCS: BLINE AND RIGHT
-      cross_right = x_intersection(bline->focus, 
+      cross_right = x_intersection(current->focus, 
                                    right->focus, 
                                    sweepline_y);
       if (focus.x < cross_right.x_left) {
-        return bline;
+        return current;
       } else if (focus.x == cross_right.x_left) {
         printf("ERROR!! Intersection just above focus..\n");
         exit(1);
       } else {
-        bline = bline->right;
-        right = bline->right;
-        left = bline->left;
+        current = current->right;
+        right = current->right;
+        left = current->left;
       }
     } else if (left && !right) {
       // ONLY 2 ARCS: BLINE AND LEFT
-      cross_left = x_intersection(bline->focus, 
+      cross_left = x_intersection(current->focus, 
                                    left->focus, 
                                    sweepline_y);
       if (focus.x > cross_left.x_right) {
-        return bline;
+        return current;
       } else if (focus.x == cross_left.x_right) {
         printf("ERROR!! Intersection just above focus..\n");
         exit(1);
       } else {
-        bline = bline->left;
-        right = bline->right;
-        left = bline->left;
+        current = current->left;
+        right = current->right;
+        left = current->left;
       }
     } else {
-      cross_left = x_intersection(bline->focus, 
+      cross_left = x_intersection(current->focus, 
                                    left->focus, 
                                    sweepline_y);
-      cross_right = x_intersection(bline->focus, 
+      cross_right = x_intersection(current->focus, 
                                    right->focus, 
                                    sweepline_y);
       if (focus.x > cross_right.x_left) {
-        bline = right;
-        right = bline->right;
-        left = bline->left;
+        current = right;
+        right = current->right;
+        left = current->left;
       } else if (focus.x < cross_left.x_right) {
-        bline = left;
-        left = bline->left;
-        right = bline->right;
+        current = left;
+        left = current->left;
+        right = current->right;
       } else if (focus.x > cross_left.x_right && 
                  focus.x < cross_right.x_left) {
-        return bline;
+        return current;
       } else if (focus.x == cross_left.x_right || 
                  focus.x == cross_left.x_right) {
         printf("ERROR!! Intersection just above focus..\n");
@@ -290,7 +291,7 @@ arc_T *find_arc_above(arc_T *bline, const focus_T focus)
 }
 
 
-arc_T *insert_arc(arc_T **bline, const focus_T focus)
+arc_T *insert_arc(beachline_T *bline, const focus_T focus)
 {
   // Check if beachline is empty
   if (!*bline) {
@@ -318,7 +319,7 @@ vor_diagram_T *fortune_algorithm(seed_T *seeds, int N)
   print_queue(queue);
 
   vor_diagram_T *diagram = NULL;
-  arc_T *bline = NULL;
+  beachline_T bline = NULL;
 
   while (queue) {
     event_T event = pop_event(&queue);
@@ -327,6 +328,9 @@ vor_diagram_T *fortune_algorithm(seed_T *seeds, int N)
       // Add arc into beachline
       focus_T focus = {.x = event.x, .y = event.y};
       arc_T *arc = insert_arc(&bline, focus);
+      // Add potential vertex events to the queue
+      add_vertex_events(&queue, arc);
+
       print_beachline(bline); 
       putchar('\n');
       
