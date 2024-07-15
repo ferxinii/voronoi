@@ -171,7 +171,7 @@ double parabola_y(focus_T f, double directrix, double x)
 }
 
 
-double x_intersection(focus_T f1, focus_T f2, double directrix)
+parab_intersect_T x_intersection(focus_T f1, focus_T f2, double directrix)
 {
   // ASSUME f1.x < f2.x
   double k = directrix;
@@ -181,10 +181,8 @@ double x_intersection(focus_T f1, focus_T f2, double directrix)
   double d = f2.y;
   
   if (d == b && d == directrix) {
-    printf("ATTENTION!! Non existent intersection\n");
+    printf("ATTENTION!! Critical case for intersection... d = b\n");
     exit(1);
-  } else if (d == b) {
-    return (a + c) / 2;
   }
   
   double B = 2 * (c*b - a*d) / (d - b) + 2 * (a - c) / (d - b) * k;
@@ -195,13 +193,16 @@ double x_intersection(focus_T f1, focus_T f2, double directrix)
     printf("Is directrix < f1.y, f2.y??\n");
     exit(1);
   }
+  
+  parab_intersect_T out;
+  out.x_left = (-B - sqrt(B*B - 4*C)) / 2;
+  out.x_right = (-B + sqrt(B*B - 4*C)) / 2;
 
-  double x = (-B - sqrt(B*B - 4*C)) / 2;
-  return x;
+  return out;
 }
 
 
-arc_T *find_arc_above(const arc_T *bline, const focus_T focus)
+arc_T *find_arc_above(arc_T *bline, const focus_T focus)
 {
   // Return pointer to arc of beachline that lies directly above new focus.
   // This is done by comparing focus.x with intersections of existing arcs
@@ -211,7 +212,7 @@ arc_T *find_arc_above(const arc_T *bline, const focus_T focus)
   }
 
   double sweepline_y = focus.y;
-  double cross_left, cross_right;
+  parab_intersect_T cross_left, cross_right;
   
   arc_T *left = bline->left;
   arc_T *right = bline->right;
@@ -225,9 +226,9 @@ arc_T *find_arc_above(const arc_T *bline, const focus_T focus)
       cross_right = x_intersection(bline->focus, 
                                    right->focus, 
                                    sweepline_y);
-      if (focus.x < cross_right) {
+      if (focus.x < cross_right.x_left) {
         return bline;
-      } else if (focus.x == cross_right) {
+      } else if (focus.x == cross_right.x_left) {
         printf("ERROR!! Intersection just above focus..\n");
         exit(1);
       } else {
@@ -240,9 +241,9 @@ arc_T *find_arc_above(const arc_T *bline, const focus_T focus)
       cross_left = x_intersection(bline->focus, 
                                    left->focus, 
                                    sweepline_y);
-      if (focus.x > cross_left) {
+      if (focus.x > cross_left.x_right) {
         return bline;
-      } else if (focus.x == cross_left) {
+      } else if (focus.x == cross_left.x_right) {
         printf("ERROR!! Intersection just above focus..\n");
         exit(1);
       } else {
@@ -257,17 +258,19 @@ arc_T *find_arc_above(const arc_T *bline, const focus_T focus)
       cross_right = x_intersection(bline->focus, 
                                    right->focus, 
                                    sweepline_y);
-      if (focus.x > cross_right) {
+      if (focus.x > cross_right.x_left) {
         bline = right;
         right = bline->right;
         left = bline->left;
-      } else if (focus.x < cross_left) {
+      } else if (focus.x < cross_left.x_right) {
         bline = left;
         left = bline->left;
         right = bline->right;
-      } else if (focus.x > cross_left && focus.x < cross_right) {
+      } else if (focus.x > cross_left.x_right && 
+                 focus.x < cross_right.x_left) {
         return bline;
-      } else if (focus.x == cross_left || focus.x == cross_left) {
+      } else if (focus.x == cross_left.x_right || 
+                 focus.x == cross_left.x_right) {
         printf("ERROR!! Intersection just above focus..\n");
         exit(1);
       }
@@ -285,33 +288,14 @@ arc_T *insert_arc(arc_T **bline, const focus_T focus)
   }
   
   arc_T *arc_above = find_arc_above(*bline, focus);
-
-
-
-
-  // Traverse beach to position new arc in correct position
-  // Start at the left-most position
-  arc_T *leftmost = *bline;
-  while (leftmost->left) {
-    leftmost = leftmost->left;
-  }
-  
-  arc_T *current = leftmost;
-  arc_T *next = current->right;
-  while (next && focus.x > next->focus.x) {
-    current = next;
-    next = current->right;
-  }
-  
   arc_T *new = new_arc(focus);
-  if (current == leftmost && focus.x < current->focus.x) {
-    current->left = new;
-    new->right = current;
-  } else {
-    new->right = current->right;
-    new->left = current;
-    current->right = new;
-  }
+  arc_T *above_copy = new_arc(arc_above->focus);
+  
+  above_copy->right = arc_above->right;
+  above_copy->left = new;
+  new->right = above_copy;
+  new->left = arc_above;
+  arc_above->right = new;
 
   return new;
 }

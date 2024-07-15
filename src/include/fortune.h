@@ -50,15 +50,18 @@ typedef struct arc_T {
 
 void print_beachline(const arc_T *bline);
 
-arc_T *leftmost_arc(const arc_T *bline);
-
 arc_T *new_arc(focus_T focus);
 
 double parabola_y(focus_T f, double directrix, double x);
 
-double x_intersection(focus_T f1, focus_T f2, double directrix_y);
+typedef struct parab_intersect_T {
+  double x_left;
+  double x_right;
+} parab_intersect_T;
 
-arc_T *find_arc_above(const arc_T *bline, const focus_T focus);
+parab_intersect_T x_intersection(focus_T f1, focus_T f2, double directrix_y);
+
+arc_T *find_arc_above(arc_T *bline, const focus_T focus);
 
 arc_T *insert_arc(arc_T **bline, const focus_T focus);
 
