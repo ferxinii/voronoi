@@ -1,12 +1,13 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <float.h>
 #include <math.h>
 #include "include/fortune.h"
 
 
-seed_T *random_seeds(double size, int N)
+point2D_T *random_seeds(double size, int N)
 {
-  seed_T *seeds = calloc(N, sizeof(seed_T));
+  point2D_T *seeds = calloc(N, sizeof(point2D_T));
 
   for (int ii=0; ii<N; ii++) {
     seeds[ii].x = (double)rand() / RAND_MAX * size;
@@ -34,7 +35,7 @@ event_T *new_event(enum event_type type, double x, double y)
 }
 
 
-event_T *initialize_queue(const seed_T *seeds, int N)
+event_T *initialize_queue(const point2D_T *seeds, int N)
 {
   enum event_type type = EVENT_SITE;
   
@@ -124,32 +125,27 @@ void print_event(const event_T *event)
 }
 
 
-void print_beachline(const arc_T *bline) 
+void print_beachline(beachline_T bline) 
 {
   if (!bline) {
     printf("ERROR: trying to print invalid beachline\n");
     return;
   }
 
-  const arc_T *leftmost = bline;
-  while (leftmost->left) {
-    leftmost = leftmost->left;
-  }
- 
   printf("------------ BEACHLINE -----------\n");
   int ii = 0;
-  printf("%d  x: %f, y: %f\n", ii, leftmost->focus.x, leftmost->focus.y);
-  while (leftmost->right) {
+  printf("%d  x: %f, y: %f\n", ii, bline->focus.x, bline->focus.y);
+  while (bline->right) {
     ii++;
-    leftmost = leftmost->right;
-    printf("%d  x: %f, y: %f\n", ii, leftmost->focus.x, leftmost->focus.y);
+    bline = bline->right;
+    printf("%d  x: %f, y: %f\n", ii, bline->focus.x, bline->focus.y);
   }
   printf("--------------- END --------------\n");
   return;
 }
 
 
-arc_T *new_arc(focus_T focus)
+arc_T *new_arc(point2D_T focus)
 {
     arc_T *arc = malloc(sizeof(arc_T));
     if (!arc) {
@@ -165,23 +161,18 @@ arc_T *new_arc(focus_T focus)
 }
 
 
-double parabola_y(focus_T f, double directrix, double x)
+double parabola(point2D_T f, double directrix, double x)
 {
   return (x - f.x)*(x - f.x) / (2*(f.y - directrix)) + (f.y + directrix) / 2;
 }
 
 
-parab_intersect_T x_intersection(focus_T f1, focus_T f2, double directrix)
+roots2_T intersect_parabs(point2D_T f1, point2D_T f2, double directrix)
 {
   double k = directrix;
-  double a = f1.x;
-  double b = f1.y;
-  double c = f2.x;
-  double d = f2.y;
+  double a = f1.x, b = f1.y, c = f2.x, d = f2.y;
 
-  double A, B, C;
-  parab_intersect_T out;
-
+  roots2_T out;
   if (d == b && d == directrix) {
     printf("ATTENTION!! Critical case for intersection... d = b\n");
     exit(1);
@@ -189,31 +180,26 @@ parab_intersect_T x_intersection(focus_T f1, focus_T f2, double directrix)
     printf("ATTENTION!! Same parabolas, infinite intersections\n");
     exit(1);
   } else if (d == b) {
-    //B = 2 * (c*b - a*d + a*k - c*k);
-    //C = a*a*(d-k) - c*c*(b-k);
-    // Actually, it simplifies further...
-    out.x_left = (a+c)/2;
-    out.x_right = out.x_left;
+    out.pos = (a+c)/2;
+    out.neg = out.pos;
   } else {
-    A = d - b; 
-    B = 2 * (c*b - a*d + a*k - c*k);
-    C = a*a*(d-k) - c*c*(b-k) - (b-k)*(d-k)*(d-b);
-    
+    double A = d - b; 
+    double B = 2 * (c*b - a*d + a*k - c*k);
+    double C = a*a*(d-k) - c*c*(b-k) - (b-k)*(d-k)*(d-b);
+
     if (B*B - 4*A*C <= 0) {
       printf("ATTENTION!! NEGATIVE DISCRIMINANT......\n");
       printf("Is directrix < f1.y, f2.y??\n");
       exit(1);
     }
-    
-    out.x_left = (-B - sqrt(B*B - 4*A*C)) / (2*A);
-    out.x_right = (-B + sqrt(B*B - 4*A*C)) / (2*A);
+    out.pos = (-B - sqrt(B*B - 4*A*C)) / (2*A);
+    out.neg = (-B + sqrt(B*B - 4*A*C)) / (2*A);
   }
-  //printf("%f, %f\n", out.x_left, out.x_right);
   return out;
 }
 
 
-arc_T *find_arc_above(const beachline_T bline, const focus_T focus)
+arc_T *find_arc_above(const beachline_T bline, const point2D_T focus)
 {
   // Return pointer to arc of beachline that lies directly above new focus.
   // This is done by comparing focus.x with intersections of existing arcs
@@ -222,76 +208,41 @@ arc_T *find_arc_above(const beachline_T bline, const focus_T focus)
     exit(1);
   }
 
-  double sweepline_y = focus.y;
-  parab_intersect_T cross_left, cross_right;
-  
-  arc_T *left = bline->left;
   arc_T *current = bline;
-  arc_T *right = bline->right;
+  arc_T *next = bline->right;
 
-  while (1) {
-    if (!left && !right) {
-      // ONLY ONE ARC
+  roots2_T next_intersect;
+
+  double x_prev = - FLT_MAX;
+  double x_next;
+  while (next) {
+    next_intersect = intersect_parabs(current->focus, 
+                                          next->focus, 
+                                          focus.y);
+    x_next = next_intersect.neg;
+    if (focus.x > x_prev && focus.x < x_next) {
       return current;
-    } else if (!left && right) {
-      // ONLY 2 ARCS: BLINE AND RIGHT
-      cross_right = x_intersection(current->focus, 
-                                   right->focus, 
-                                   sweepline_y);
-      if (focus.x < cross_right.x_left) {
-        return current;
-      } else if (focus.x == cross_right.x_left) {
-        printf("ERROR!! Intersection just above focus..\n");
-        exit(1);
-      } else {
-        current = current->right;
-        right = current->right;
-        left = current->left;
-      }
-    } else if (left && !right) {
-      // ONLY 2 ARCS: BLINE AND LEFT
-      cross_left = x_intersection(current->focus, 
-                                   left->focus, 
-                                   sweepline_y);
-      if (focus.x > cross_left.x_right) {
-        return current;
-      } else if (focus.x == cross_left.x_right) {
-        printf("ERROR!! Intersection just above focus..\n");
-        exit(1);
-      } else {
-        current = current->left;
-        right = current->right;
-        left = current->left;
-      }
+    } else if (focus.x == x_prev || focus.x == x_next) {
+      printf("ERROR!! Intersection just above focus..\n");
+      exit(1);
     } else {
-      cross_left = x_intersection(current->focus, 
-                                   left->focus, 
-                                   sweepline_y);
-      cross_right = x_intersection(current->focus, 
-                                   right->focus, 
-                                   sweepline_y);
-      if (focus.x > cross_right.x_left) {
-        current = right;
-        right = current->right;
-        left = current->left;
-      } else if (focus.x < cross_left.x_right) {
-        current = left;
-        left = current->left;
-        right = current->right;
-      } else if (focus.x > cross_left.x_right && 
-                 focus.x < cross_right.x_left) {
-        return current;
-      } else if (focus.x == cross_left.x_right || 
-                 focus.x == cross_left.x_right) {
-        printf("ERROR!! Intersection just above focus..\n");
-        exit(1);
-      }
+      x_prev = x_next; 
+      current = next;
+      next = current->right;
     }
+  }
+
+  // REACHED RIGHTMOST ARC
+  if (focus.x > x_prev) {
+    return current;
+  } else {
+    printf("ERROR!! Reached rightmost arc without finding arc above...\n");
+    exit(1);
   }
 }
 
 
-arc_T *insert_arc(beachline_T *bline, const focus_T focus)
+arc_T *insert_arc(beachline_T *bline, const point2D_T focus)
 {
   // Check if beachline is empty
   if (!*bline) {
@@ -313,7 +264,74 @@ arc_T *insert_arc(beachline_T *bline, const focus_T focus)
 }
 
 
-vor_diagram_T *fortune_algorithm(seed_T *seeds, int N)
+circle_T points2circle(point2D_T p1, point2D_T p2, point2D_T p3)
+{
+  double M11 = p1.x*(p2.y - p3.y) - p2.x*(p1.y - p3.y) + p3.x*(p1.y - p2.y);
+  if (M11 == 0) {
+    printf("ERROR! Points are collinear. Cannot find associated circle...\n");
+    exit(1);
+  }
+  double r1_2 = p1.x * p1.x + p1.y * p1.y;
+  double r2_2 = p2.x * p2.x + p2.y * p2.y;
+  double r3_2 = p3.x * p3.x + p3.y * p3.y;
+  
+  double M12 = r1_2*(p2.y - p3.y) - r2_2*(p1.y - p3.y) + r3_2*(p1.y - p2.y);
+  double M13 = r1_2*(p2.x - p3.x) - r2_2*(p1.x - p3.x) + r3_2*(p1.x - p2.x);
+  double M14 = r1_2 * (p2.x*p3.y - p2.y*p3.x) - 
+               r2_2 * (p1.x*p3.y - p1.y*p3.y) + 
+               r3_2 * (p1.x*p2.y - p1.y*p2.x);
+
+  circle_T out;
+  out.A = 0.5 * M12 / M11;
+  out.B = - 0.5 * M13 / M11;
+  out.R = sqrt(out.A * out.A + out.B * out.B + M14 / M11);
+
+  return out;
+}
+
+
+int circle_contains_seed_p(event_T *queue, circle_T circle) 
+{
+  event_T *event = queue;
+  while (event) {
+    if (event->type == EVENT_SITE) {
+      double d_2 = pow((event->x-circle.A), 2) + pow((event->y-circle.B), 2);
+      if (d_2 <= circle.R * circle.R) {
+        return 1;
+      }
+    }
+  }
+
+  return 0;
+}
+
+
+void add_event(event_T **queue) 
+{
+    
+
+}
+
+
+void add_vertex_events(event_T **queue, const arc_T *arc)
+{
+  arc_T *left2 = arc->left->left;
+  arc_T *left = arc->left;
+  arc_T *right = arc->right;
+  arc_T *right2 = arc->right->right;
+
+  if (left2 && left && arc) {
+    circle_T left_circ = points2circle(left2->focus, left->focus, arc->focus);
+    if (left_circ.B < arc->focus.y && !circle_contains_seed_p(*queue, left_circ)) {
+      // Add event to queue
+
+    }
+  }
+
+}
+
+
+vor_diagram_T *fortune_algorithm(point2D_T *seeds, int N)
 {
   event_T *queue = initialize_queue(seeds, N);
   print_queue(queue);
@@ -326,7 +344,7 @@ vor_diagram_T *fortune_algorithm(seed_T *seeds, int N)
 
     if (event.type == EVENT_SITE) {
       // Add arc into beachline
-      focus_T focus = {.x = event.x, .y = event.y};
+      point2D_T focus = {.x = event.x, .y = event.y};
       arc_T *arc = insert_arc(&bline, focus);
       // Add potential vertex events to the queue
       add_vertex_events(&queue, arc);

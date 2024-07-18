@@ -25,50 +25,53 @@
  *
 */
 
-typedef struct seed_T {
+typedef struct point2D_T {
   double x;
   double y;
-} seed_T;
+} point2D_T;
 
-seed_T *random_seeds(double size, int N);
+point2D_T *random_seeds(double size, int N);
 
 
 // The beachline struct consists of the sorted sequence of foci whose arcs 
 // form the current beachline. It is updated with the events.
 // Linked list of arcs, where the arcs are simply the foci.
 
-typedef struct focus_T {
-  double x;
-  double y;
-} focus_T;
-
 typedef struct arc_T {
-  struct focus_T focus;
+  struct point2D_T focus;
   struct arc_T *left;
   struct arc_T *right;
 } arc_T;
 
 typedef arc_T *beachline_T;
 
-void print_beachline(const arc_T *bline);
+void print_beachline(beachline_T bline);
 
-arc_T *new_arc(focus_T focus);
+arc_T *new_arc(point2D_T focus);
 
-double parabola_y(focus_T f, double directrix, double x);
+double parabola(point2D_T f, double directrix, double x);
 
-typedef struct parab_intersect_T {
-  double x_left;
-  double x_right;
-} parab_intersect_T;
+typedef struct roots2_T {
+  double pos;
+  double neg;
+} roots2_T;
 
-parab_intersect_T x_intersection(focus_T f1, focus_T f2, double directrix_y);
+roots2_T intersect_parabs(point2D_T f1, point2D_T f2, double directrix_y);
 
-arc_T *find_arc_above(arc_T *bline, const focus_T focus);
+arc_T *find_arc_above(beachline_T bline, point2D_T focus);
 
-arc_T *insert_arc(arc_T **bline, const focus_T focus);
+arc_T *insert_arc(beachline_T *bline, point2D_T focus);
 
-void delete_arc(arc_T *bline, const seed_T *arc);
+void delete_arc(arc_T *bline, const arc_T *arc);
 
+
+typedef struct circle_T {
+  double A;  // x-center
+  double B;  // y-center
+  double R;
+} circle_T;
+
+circle_T points2circle(point2D_T p1, point2D_T p2, point2D_T p3);
 
 // Event queue:  linked list of events
 enum event_type {
@@ -79,19 +82,25 @@ enum event_type {
 typedef struct event_T {
   enum event_type type;
   struct event_T *next;
+  //point2D_T seed;
+  //double y;
   double x;  // Coordinates associated to the event
   double y;
 } event_T;
 
 event_T *new_event(enum event_type type, double x, double y);
 
-event_T *initialize_queue(const seed_T *seeds, int N);
+event_T *initialize_queue(const point2D_T *seeds, int N);
 
 event_T pop_event(event_T **queue);
+
+void add_event(event_T **queue);
 
 void print_queue(const event_T *queue);
 
 void print_event(const event_T *event);
+
+int circle_contains_seed_p(event_T *queue, circle_T circle);
 
 void add_vertex_events(event_T **queue, const arc_T *arc);
 
@@ -113,7 +122,7 @@ typedef struct edge_T {
 
 typedef struct face_T {
   struct edge_T *edges;
-  seed_T *seed;
+  point2D_T *seed;
 } face_T;
 
 typedef struct vor_diagram_T {
@@ -121,7 +130,7 @@ typedef struct vor_diagram_T {
   struct face_T *faces;
 } vor_diagram_T;
 
-vor_diagram_T *fortune_algorithm(seed_T *seeds, int N);
+vor_diagram_T *fortune_algorithm(point2D_T *seeds, int N);
 
 
 #endif
