@@ -306,10 +306,34 @@ int circle_contains_seed_p(event_T *queue, circle_T circle)
 }
 
 
-void add_event(event_T **queue) 
+void add_event(event_T **queue, enum event_type type, double x, double y) 
 {
-    
+  if (!queue) {
+    printf("ERROR!! Can't add event to invalid queue...\n");
+    exit(1);
+  }
+  
+  event_T *new = new_event(type, x, y);
+  if (!*queue) {
+    *queue = new;
+    return;
+  }
 
+  event_T *current = *queue;
+  event_T *next = current->next;
+  while (next && next->y > y) {
+    current = next;
+    next = current->next;
+  }
+  
+  if (current == *queue && y < current->y) {
+    new->next = current;
+    *queue = new;
+  } else {
+    new->next = next;
+    current->next = new;
+  }
+  return;
 }
 
 
@@ -322,12 +346,13 @@ void add_vertex_events(event_T **queue, const arc_T *arc)
 
   if (left2 && left && arc) {
     circle_T left_circ = points2circle(left2->focus, left->focus, arc->focus);
-    if (left_circ.B < arc->focus.y && !circle_contains_seed_p(*queue, left_circ)) {
-      // Add event to queue
-
+    if (left_circ.B - left_circ.R < arc->focus.y && 
+        !circle_contains_seed_p(*queue, left_circ)) {
+      add_event(queue, EVENT_VERTEX, left_circ.A, left_circ.B - left_circ.R); 
     }
   }
 
+  return;
 }
 
 

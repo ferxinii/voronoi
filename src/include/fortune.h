@@ -82,8 +82,6 @@ enum event_type {
 typedef struct event_T {
   enum event_type type;
   struct event_T *next;
-  //point2D_T seed;
-  //double y;
   double x;  // Coordinates associated to the event
   double y;
 } event_T;
@@ -94,7 +92,7 @@ event_T *initialize_queue(const point2D_T *seeds, int N);
 
 event_T pop_event(event_T **queue);
 
-void add_event(event_T **queue);
+void add_event(event_T **queue, enum event_type type, double x, double y);
 
 void print_queue(const event_T *queue);
 
