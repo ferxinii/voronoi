@@ -18,7 +18,7 @@ point2D_T *random_seeds(double size, int N)
 }
 
 
-event_T *new_event(enum event_type type, double x, double y)
+event_T *new_event(enum event_type type, point2D_T p)
 {
   event_T *event = malloc(sizeof(event_T));
   if (!event) {
@@ -28,8 +28,7 @@ event_T *new_event(enum event_type type, double x, double y)
 
   event->next = NULL;
   event->type = type;
-  event->x = x;
-  event->y = y;
+  event->p = p;
   
   return event;
 }
@@ -39,7 +38,7 @@ event_T *initialize_queue(const point2D_T *seeds, int N)
 {
   enum event_type type = EVENT_SITE;
   
-  event_T *head = new_event(type, seeds[0].x, seeds[0].y);
+  event_T *head = new_event(type, seeds[0]);
 
   for (int ii=1; ii<N; ii++) {
     // Find where to insert new event ordering by descending Y coordinate
@@ -47,7 +46,7 @@ event_T *initialize_queue(const point2D_T *seeds, int N)
     //ID:         ----0----      ----1----            ----k-1---    k
     event_T *current = head;
     event_T *next = current->next;
-    while (next && seeds[ii].y < next->y){
+    while (next && seeds[ii].y < next->p.y){
       current = next;
       next = current->next;
     }
@@ -55,8 +54,8 @@ event_T *initialize_queue(const point2D_T *seeds, int N)
     // Insert event in queue:
     //     .....  --> |current|  -->  |next| -->  ......
     //     .....  --> |current|  -->  |new|  -->  |next| -->  .....
-    event_T *new = new_event(type, seeds[ii].x, seeds[ii].y);
-    if (current == head && new->y > head->y) {
+    event_T *new = new_event(type, seeds[ii]);
+    if (current == head && new->p.y > head->p.y) {
       new->next = current;
       head = new;
     } else {
@@ -121,7 +120,7 @@ void print_event(const event_T *event)
     default:
       printf("??? (SHOULD NEVER SEE THIS)");
   }
-  printf("x: %f, y: %f\n", event->x, event->y);
+  printf("x: %f, y: %f\n", event->p.x, event->p.y);
 }
 
 
@@ -282,9 +281,9 @@ circle_T points2circle(point2D_T p1, point2D_T p2, point2D_T p3)
                r3_2 * (p1.x*p2.y - p1.y*p2.x);
 
   circle_T out;
-  out.A = 0.5 * M12 / M11;
-  out.B = - 0.5 * M13 / M11;
-  out.R = sqrt(out.A * out.A + out.B * out.B + M14 / M11);
+  out.c.x = 0.5 * M12 / M11;
+  out.c.y = - 0.5 * M13 / M11;
+  out.R = sqrt(out.c.x * out.c.x + out.c.y * out.c.y + M14 / M11);
 
   return out;
 }
@@ -295,7 +294,7 @@ int circle_contains_seed_p(event_T *queue, circle_T circle)
   event_T *event = queue;
   while (event) {
     if (event->type == EVENT_SITE) {
-      double d_2 = pow((event->x-circle.A), 2) + pow((event->y-circle.B), 2);
+      double d_2 = pow((event->p.x-circle.c.x), 2) + pow((event->p.y-circle.c.y), 2);
       if (d_2 <= circle.R * circle.R) {
         return 1;
       }
@@ -306,14 +305,14 @@ int circle_contains_seed_p(event_T *queue, circle_T circle)
 }
 
 
-void add_event(event_T **queue, enum event_type type, double x, double y) 
+void add_event(event_T **queue, enum event_type type, point2D_T p) 
 {
   if (!queue) {
     printf("ERROR!! Can't add event to invalid queue...\n");
     exit(1);
   }
   
-  event_T *new = new_event(type, x, y);
+  event_T *new = new_event(type, p);
   if (!*queue) {
     *queue = new;
     return;
@@ -321,12 +320,12 @@ void add_event(event_T **queue, enum event_type type, double x, double y)
 
   event_T *current = *queue;
   event_T *next = current->next;
-  while (next && next->y > y) {
+  while (next && next->p.y > p.y) {
     current = next;
     next = current->next;
   }
   
-  if (current == *queue && y < current->y) {
+  if (current == *queue && p.y < current->p.y) {
     new->next = current;
     *queue = new;
   } else {
@@ -346,9 +345,9 @@ void add_vertex_events(event_T **queue, const arc_T *arc)
 
   if (left2 && left && arc) {
     circle_T left_circ = points2circle(left2->focus, left->focus, arc->focus);
-    if (left_circ.B - left_circ.R < arc->focus.y && 
+    if (left_circ.c.y - left_circ.R < arc->focus.y && 
         !circle_contains_seed_p(*queue, left_circ)) {
-      add_event(queue, EVENT_VERTEX, left_circ.A, left_circ.B - left_circ.R); 
+      add_event(queue, EVENT_VERTEX, left_circ.c); 
     }
   }
 
@@ -369,7 +368,6 @@ vor_diagram_T *fortune_algorithm(point2D_T *seeds, int N)
 
     if (event.type == EVENT_SITE) {
       // Add arc into beachline
-      point2D_T focus = {.x = event.x, .y = event.y};
       arc_T *arc = insert_arc(&bline, focus);
       // Add potential vertex events to the queue
       add_vertex_events(&queue, arc);

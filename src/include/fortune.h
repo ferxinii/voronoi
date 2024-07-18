@@ -66,8 +66,7 @@ void delete_arc(arc_T *bline, const arc_T *arc);
 
 
 typedef struct circle_T {
-  double A;  // x-center
-  double B;  // y-center
+  point2D_T c;
   double R;
 } circle_T;
 
@@ -82,17 +81,16 @@ enum event_type {
 typedef struct event_T {
   enum event_type type;
   struct event_T *next;
-  double x;  // Coordinates associated to the event
-  double y;
+  point2D_T p; 
 } event_T;
 
-event_T *new_event(enum event_type type, double x, double y);
+event_T *new_event(enum event_type type, point2D_T p);
 
 event_T *initialize_queue(const point2D_T *seeds, int N);
 
 event_T pop_event(event_T **queue);
 
-void add_event(event_T **queue, enum event_type type, double x, double y);
+void add_event(event_T **queue, enum event_type type, point2D_T p);
 
 void print_queue(const event_T *queue);
 
