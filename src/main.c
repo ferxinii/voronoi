@@ -10,6 +10,11 @@ int main(void)
   srand(time(NULL));
   int N = 10;
   point2D_T *seeds = random_seeds(1, N);
+  
+  point2D_T p1 = {0,1}, p2 = {-1,0}, p3 = {0,-1};
+
+  circle_T circ = points2circle(p1, p2, p3);
+  printf("A:%f, B:%f, R:%f\n", circ.c.x, circ.c.y, circ.R);
 
   fortune_algorithm(seeds, N); 
   

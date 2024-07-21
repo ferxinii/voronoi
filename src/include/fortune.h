@@ -32,6 +32,7 @@ typedef struct point2D_T {
 
 point2D_T *random_seeds(double size, int N);
 
+int points_unique_3(point2D_T p1, point2D_T p2, point2D_T p3);
 
 // The beachline struct consists of the sorted sequence of foci whose arcs 
 // form the current beachline. It is updated with the events.
@@ -62,7 +63,7 @@ arc_T *find_arc_above(beachline_T bline, point2D_T focus);
 
 arc_T *insert_arc(beachline_T *bline, point2D_T focus);
 
-void delete_arc(arc_T *bline, const arc_T *arc);
+void delete_arc(beachline_T *bline, arc_T *arc);
 
 
 typedef struct circle_T {
@@ -82,23 +83,25 @@ typedef struct event_T {
   enum event_type type;
   struct event_T *next;
   point2D_T p; 
+  arc_T *arc;
 } event_T;
 
-event_T *new_event(enum event_type type, point2D_T p);
+event_T *new_event(enum event_type type, point2D_T p, arc_T *arc);
 
 event_T *initialize_queue(const point2D_T *seeds, int N);
 
 event_T pop_event(event_T **queue);
 
-void add_event(event_T **queue, enum event_type type, point2D_T p);
+void add_event(event_T **queue, enum event_type type, 
+               point2D_T p, arc_T *arc);
 
 void print_queue(const event_T *queue);
 
 void print_event(const event_T *event);
 
-int circle_contains_seed_p(event_T *queue, circle_T circle);
+int circle_contains_seeds_p(event_T *queue, circle_T circle);
 
-void add_vertex_events(event_T **queue, const arc_T *arc);
+void add_vertex_events(event_T **queue, arc_T *arc);
 
 
 // Voronoi diagram:

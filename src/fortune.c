@@ -18,17 +18,26 @@ point2D_T *random_seeds(double size, int N)
 }
 
 
-event_T *new_event(enum event_type type, point2D_T p)
+int points_unique_3(point2D_T p1, point2D_T p2, point2D_T p3){
+  int A = p1.x != p2.x && p1.y != p2.y;
+  int B = p1.x != p3.x && p1.y != p3.y;
+  int C = p2.x != p3.x && p2.y != p3.y;
+  return A && B && C;
+}
+
+
+event_T *new_event(enum event_type type, point2D_T p, arc_T *arc)
 {
   event_T *event = malloc(sizeof(event_T));
   if (!event) {
     printf("ERROR: cannot allocate memory for event\n");
     exit(1);
   }
-
+  
   event->next = NULL;
   event->type = type;
   event->p = p;
+  event->arc = arc;
   
   return event;
 }
@@ -38,7 +47,7 @@ event_T *initialize_queue(const point2D_T *seeds, int N)
 {
   enum event_type type = EVENT_SITE;
   
-  event_T *head = new_event(type, seeds[0]);
+  event_T *head = new_event(type, seeds[0], NULL);
 
   for (int ii=1; ii<N; ii++) {
     // Find where to insert new event ordering by descending Y coordinate
@@ -54,7 +63,7 @@ event_T *initialize_queue(const point2D_T *seeds, int N)
     // Insert event in queue:
     //     .....  --> |current|  -->  |next| -->  ......
     //     .....  --> |current|  -->  |new|  -->  |next| -->  .....
-    event_T *new = new_event(type, seeds[ii]);
+    event_T *new = new_event(type, seeds[ii], NULL);
     if (current == head && new->p.y > head->p.y) {
       new->next = current;
       head = new;
@@ -112,7 +121,7 @@ void print_event(const event_T *event)
   
   switch (event->type) {
     case EVENT_SITE:
-      printf("SITE EVENT  ");
+      printf("SITE EVENT    ");
       break;
     case EVENT_VERTEX:
       printf("VERTEX EVENT  ");
@@ -120,7 +129,11 @@ void print_event(const event_T *event)
     default:
       printf("??? (SHOULD NEVER SEE THIS)");
   }
-  printf("x: %f, y: %f\n", event->p.x, event->p.y);
+  printf("x: %f, y: %f", event->p.x, event->p.y);
+  if (event->arc) {
+    printf("    ARC: %f, %f, %p", event->arc->focus.x, event->arc->focus.y, event->arc);
+  }
+  putchar('\n');
 }
 
 
@@ -133,11 +146,11 @@ void print_beachline(beachline_T bline)
 
   printf("------------ BEACHLINE -----------\n");
   int ii = 0;
-  printf("%d  x: %f, y: %f\n", ii, bline->focus.x, bline->focus.y);
+  printf("%d  x: %f, y: %f, p: %p\n", ii, bline->focus.x, bline->focus.y, *bline);
   while (bline->right) {
     ii++;
     bline = bline->right;
-    printf("%d  x: %f, y: %f\n", ii, bline->focus.x, bline->focus.y);
+    printf("%d  x: %f, y: %f, p: %p\n", ii, bline->focus.x, bline->focus.y, bline);
   }
   printf("--------------- END --------------\n");
   return;
@@ -253,6 +266,8 @@ arc_T *insert_arc(beachline_T *bline, const point2D_T focus)
   arc_T *new = new_arc(focus);
   arc_T *above_copy = new_arc(arc_above->focus);
   
+  // above  
+  // above -> new -> above_copy
   above_copy->right = arc_above->right;
   above_copy->left = new;
   new->right = above_copy;
@@ -277,19 +292,19 @@ circle_T points2circle(point2D_T p1, point2D_T p2, point2D_T p3)
   double M12 = r1_2*(p2.y - p3.y) - r2_2*(p1.y - p3.y) + r3_2*(p1.y - p2.y);
   double M13 = r1_2*(p2.x - p3.x) - r2_2*(p1.x - p3.x) + r3_2*(p1.x - p2.x);
   double M14 = r1_2 * (p2.x*p3.y - p2.y*p3.x) - 
-               r2_2 * (p1.x*p3.y - p1.y*p3.y) + 
+               r2_2 * (p1.x*p3.y - p1.y*p3.x) + 
                r3_2 * (p1.x*p2.y - p1.y*p2.x);
 
   circle_T out;
   out.c.x = 0.5 * M12 / M11;
   out.c.y = - 0.5 * M13 / M11;
-  out.R = sqrt(out.c.x * out.c.x + out.c.y * out.c.y + M14 / M11);
+  out.R = sqrt(pow(out.c.x, 2) + pow(out.c.y, 2) + M14 / M11);
 
   return out;
 }
 
 
-int circle_contains_seed_p(event_T *queue, circle_T circle) 
+int circle_contains_seeds_p(event_T *queue, circle_T circle) 
 {
   event_T *event = queue;
   while (event) {
@@ -299,20 +314,22 @@ int circle_contains_seed_p(event_T *queue, circle_T circle)
         return 1;
       }
     }
+    event = event->next;
   }
 
   return 0;
 }
 
 
-void add_event(event_T **queue, enum event_type type, point2D_T p) 
+void add_event(event_T **queue, enum event_type type, 
+               point2D_T p, arc_T *arc)
 {
   if (!queue) {
     printf("ERROR!! Can't add event to invalid queue...\n");
     exit(1);
   }
-  
-  event_T *new = new_event(type, p);
+
+  event_T *new = new_event(type, p, arc);
   if (!*queue) {
     *queue = new;
     return;
@@ -325,9 +342,12 @@ void add_event(event_T **queue, enum event_type type, point2D_T p)
     next = current->next;
   }
   
-  if (current == *queue && p.y < current->p.y) {
+  if (current == *queue && p.y > current->p.y) {
     new->next = current;
     *queue = new;
+  } else if (p.y == current->p.y && p.x == current->p.x) {
+    printf("ERROR!! DUPLICATE EVENT???\n");
+    exit(1);
   } else {
     new->next = next;
     current->next = new;
@@ -336,20 +356,75 @@ void add_event(event_T **queue, enum event_type type, point2D_T p)
 }
 
 
-void add_vertex_events(event_T **queue, const arc_T *arc)
+void add_vertex_events(event_T **queue, arc_T *arc)
 {
-  arc_T *left2 = arc->left->left;
+  arc_T *left2;
   arc_T *left = arc->left;
   arc_T *right = arc->right;
-  arc_T *right2 = arc->right->right;
-
-  if (left2 && left && arc) {
-    circle_T left_circ = points2circle(left2->focus, left->focus, arc->focus);
-    if (left_circ.c.y - left_circ.R < arc->focus.y && 
-        !circle_contains_seed_p(*queue, left_circ)) {
-      add_event(queue, EVENT_VERTEX, left_circ.c); 
+  arc_T *right2;
+  
+  circle_T circ;
+  point2D_T p;
+  if (left && arc) {
+    left2 = left->left;
+      if (left2 && points_unique_3(left2->focus, left->focus, arc->focus)) {
+      circ = points2circle(left2->focus, left->focus, arc->focus);
+      p.x = circ.c.x;
+      p.y = circ.c.y - circ.R;
+      if (p.y < arc->focus.y && !circle_contains_seeds_p(*queue, circ)) {
+        add_event(queue, EVENT_VERTEX, p, left); 
+      }
     }
   }
+
+  if (left && arc && right && 
+      points_unique_3(left->focus, arc->focus, right->focus)) {
+    circ = points2circle(left->focus, arc->focus, right->focus);
+    p.x = circ.c.x;
+    p.y = circ.c.y - circ.R;
+    if (p.y < arc->focus.y && !circle_contains_seeds_p(*queue, circ)) {
+      add_event(queue, EVENT_VERTEX, p, arc); 
+    }
+  }
+
+  if (arc && right) {
+    right2 = right->right;
+    if (right2 && points_unique_3(arc->focus, right->focus, right2->focus)) {
+      circ = points2circle(arc->focus, right->focus, right2->focus);
+      p.x = circ.c.x;
+      p.y = circ.c.y - circ.R;
+      if (p.y < arc->focus.y && !circle_contains_seeds_p(*queue, circ)) {
+        add_event(queue, EVENT_VERTEX, p, right); 
+      }
+    }
+  }
+
+
+  return;
+}
+
+
+void delete_arc(beachline_T *bline, arc_T *arc)
+{
+  if (!bline || !*bline) {
+    printf("ERROR! Can't delete arc from invalid beachline...\n");
+    exit(1);
+  }
+
+  arc_T *current = *bline;
+
+  while (current && current != arc) {
+    current = current->right;
+  }
+
+  if (!current) {
+    printf("ERROR! Cannot find arc to delete in beachline...\n");
+    exit(1);
+  }
+
+  current->left->right = current->right;
+  current->right->left = current->left;
+  free(current);
 
   return;
 }
@@ -358,34 +433,31 @@ void add_vertex_events(event_T **queue, const arc_T *arc)
 vor_diagram_T *fortune_algorithm(point2D_T *seeds, int N)
 {
   event_T *queue = initialize_queue(seeds, N);
-  print_queue(queue);
 
   vor_diagram_T *diagram = NULL;
   beachline_T bline = NULL;
 
   while (queue) {
     event_T event = pop_event(&queue);
+    putchar('\n');
+    print_event(&event);
+    print_queue(queue);
+    print_beachline(bline);
 
     if (event.type == EVENT_SITE) {
-      // Add arc into beachline
-      arc_T *arc = insert_arc(&bline, focus);
-      // Add potential vertex events to the queue
+      arc_T *arc = insert_arc(&bline, event.p);
       add_vertex_events(&queue, arc);
-
-      print_beachline(bline); 
-      putchar('\n');
       
     } else if (event.type == EVENT_VERTEX) {
-      // Remove squeezed cell from the beachline
+      delete_arc(&bline, event.arc);
 
     } else {
       printf("ERROR! Unknown event! Should never see this...\n");
       exit(1);
     }
 
-    putchar('\n');
-    //print_queue(queue);
-  }
+    print_beachline(bline);
+ }
 
   free(bline);
 
