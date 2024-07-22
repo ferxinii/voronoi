@@ -25,6 +25,8 @@
  *
 */
 
+// ---- Points -----
+
 typedef struct point2D_T {
   double x;
   double y;
@@ -34,9 +36,10 @@ point2D_T *random_seeds(double size, int N);
 
 int points_unique_3(point2D_T p1, point2D_T p2, point2D_T p3);
 
-// The beachline struct consists of the sorted sequence of foci whose arcs 
-// form the current beachline. It is updated with the events.
-// Linked list of arcs, where the arcs are simply the foci.
+int points_equal(point2D_T p1, point2D_T p2);
+
+
+// ---- Beachline ----
 
 typedef struct arc_T {
   struct point2D_T focus;
@@ -48,7 +51,12 @@ typedef arc_T *beachline_T;
 
 void print_beachline(beachline_T bline);
 
+void free_beachline(beachline_T bline);
+
 arc_T *new_arc(point2D_T focus);
+
+
+// ---- Parabolas and geometry ----
 
 double parabola(point2D_T f, double directrix, double x);
 
@@ -61,10 +69,9 @@ roots2_T intersect_parabs(point2D_T f1, point2D_T f2, double directrix_y);
 
 arc_T *find_arc_above(beachline_T bline, point2D_T focus);
 
-arc_T *insert_arc(beachline_T *bline, point2D_T focus);
+arc_T *insert_arc(beachline_T *bline, point2D_T focus);  
 
 void delete_arc(beachline_T *bline, arc_T *arc);
-
 
 typedef struct circle_T {
   point2D_T c;
@@ -73,7 +80,9 @@ typedef struct circle_T {
 
 circle_T points2circle(point2D_T p1, point2D_T p2, point2D_T p3);
 
-// Event queue:  linked list of events
+
+// ---- Event queue ----
+
 enum event_type {
     EVENT_SITE,
     EVENT_VERTEX
@@ -86,25 +95,32 @@ typedef struct event_T {
   arc_T *arc;
 } event_T;
 
+typedef event_T *queue_T;
+
 event_T *new_event(enum event_type type, point2D_T p, arc_T *arc);
 
-event_T *initialize_queue(const point2D_T *seeds, int N);
+queue_T initialize_queue(const point2D_T *seeds, int N);
 
-event_T pop_event(event_T **queue);
+event_T pop_event(queue_T *queue);
 
-void add_event(event_T **queue, enum event_type type, 
-               point2D_T p, arc_T *arc);
+int event_exists_p(queue_T queue, event_T event);
 
-void print_queue(const event_T *queue);
+void add_event_if_nonexistent(queue_T *queue, enum event_type type, 
+                              point2D_T p, arc_T *arc);
 
-void print_event(const event_T *event);
+void print_queue(queue_T queue);
 
-int circle_contains_seeds_p(event_T *queue, circle_T circle);
+void print_event(queue_T event);
 
-void add_vertex_events(event_T **queue, arc_T *arc);
+int circle_contains_seeds_p(queue_T queue, circle_T circle);
+
+void add_vertex_events_involving(queue_T *queue, arc_T *arc);
+
+void remove_vertex_events_involving(queue_T *queue, arc_T *arc);
 
 
-// Voronoi diagram:
+// ---- Voronoi diagram ----
+
 typedef struct vertex_T {
   double x, y;
   int ii;

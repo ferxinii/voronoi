@@ -1,7 +1,7 @@
 # tool macros
-CC ?= gcc # FILL: the compiler
+CC ?= cc # FILL: the compiler
 CFLAGS := -Wall -Wextra -Wpedantic # FILL: compile flags
-DBGFLAGS := -g -fsanitize=address
+DBGFLAGS := -g  # -fsanitize=address
 COBJFLAGS := $(CFLAGS) -c
 
 # path macros

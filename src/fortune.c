@@ -18,11 +18,17 @@ point2D_T *random_seeds(double size, int N)
 }
 
 
-int points_unique_3(point2D_T p1, point2D_T p2, point2D_T p3){
-  int A = p1.x != p2.x && p1.y != p2.y;
-  int B = p1.x != p3.x && p1.y != p3.y;
-  int C = p2.x != p3.x && p2.y != p3.y;
-  return A && B && C;
+int points_equal(point2D_T p1, point2D_T p2)
+{
+  return (p1.x == p2.x && p1.y == p2.y);
+}
+
+
+int points_unique_3(point2D_T p1, point2D_T p2, point2D_T p3)
+{
+  return (!points_equal(p1, p2) && 
+          !points_equal(p2, p3) && 
+          !points_equal(p1, p3));
 }
 
 
@@ -43,7 +49,7 @@ event_T *new_event(enum event_type type, point2D_T p, arc_T *arc)
 }
 
 
-event_T *initialize_queue(const point2D_T *seeds, int N)
+queue_T initialize_queue(const point2D_T *seeds, int N)
 {
   enum event_type type = EVENT_SITE;
   
@@ -87,14 +93,14 @@ event_T pop_event(event_T **queue)
 }
 
 
-void print_queue(const event_T *queue) 
+void print_queue(queue_T queue) 
 {
   if (!queue) {
     printf("ERROR: trying to print invalid queue\n");
     return;
   }
   
-  const event_T *current = queue;
+  event_T *current = queue;
   int ii = 0;
   
   printf("-------------- QUEUE -------------\n");
@@ -107,12 +113,10 @@ void print_queue(const event_T *queue)
     print_event(current);
   }
   printf("--------------- END --------------\n");
-  
-  return;
 }
 
 
-void print_event(const event_T *event)
+void print_event(event_T *event)
 {
   if (!event) {
     printf("ERROR: trying to print invalid event\n");
@@ -131,7 +135,8 @@ void print_event(const event_T *event)
   }
   printf("x: %f, y: %f", event->p.x, event->p.y);
   if (event->arc) {
-    printf("    ARC: %f, %f, %p", event->arc->focus.x, event->arc->focus.y, event->arc);
+    printf("    ARC: %f, %f, %p", event->arc->focus.x, event->arc->focus.y,
+          (void*)event->arc);
   }
   putchar('\n');
 }
@@ -146,14 +151,17 @@ void print_beachline(beachline_T bline)
 
   printf("------------ BEACHLINE -----------\n");
   int ii = 0;
-  printf("%d  x: %f, y: %f, p: %p\n", ii, bline->focus.x, bline->focus.y, *bline);
+  printf("%d  x: %f, y: %f, p: %p,   left:%p, right:%p\n", ii,
+        bline->focus.x, bline->focus.y, (void*)bline, 
+        (void*)bline->left, (void*)bline->right);
   while (bline->right) {
     ii++;
     bline = bline->right;
-    printf("%d  x: %f, y: %f, p: %p\n", ii, bline->focus.x, bline->focus.y, bline);
+    printf("%d  x: %f, y: %f, p: %p,   left:%p, right:%p\n", ii,
+            bline->focus.x, bline->focus.y, (void*)bline, 
+            (void*)bline->left, (void*)bline->right);
   }
   printf("--------------- END --------------\n");
-  return;
 }
 
 
@@ -211,7 +219,7 @@ roots2_T intersect_parabs(point2D_T f1, point2D_T f2, double directrix)
 }
 
 
-arc_T *find_arc_above(const beachline_T bline, const point2D_T focus)
+arc_T *find_arc_above(beachline_T bline, point2D_T focus)
 {
   // Return pointer to arc of beachline that lies directly above new focus.
   // This is done by comparing focus.x with intersections of existing arcs
@@ -272,8 +280,11 @@ arc_T *insert_arc(beachline_T *bline, const point2D_T focus)
   above_copy->left = new;
   new->right = above_copy;
   new->left = arc_above;
+  if (arc_above->right) {
+    arc_above->right->left = above_copy;
+  }
   arc_above->right = new;
-
+  
   return new;
 }
 
@@ -304,7 +315,7 @@ circle_T points2circle(point2D_T p1, point2D_T p2, point2D_T p3)
 }
 
 
-int circle_contains_seeds_p(event_T *queue, circle_T circle) 
+int circle_contains_seeds_p(queue_T queue, circle_T circle) 
 {
   event_T *event = queue;
   while (event) {
@@ -321,8 +332,24 @@ int circle_contains_seeds_p(event_T *queue, circle_T circle)
 }
 
 
-void add_event(event_T **queue, enum event_type type, 
-               point2D_T p, arc_T *arc)
+int event_exists_p(queue_T queue, event_T event)
+{
+  event_T *current = queue;
+  while (current) {
+    if (current->type == event.type &&
+        points_equal(current->p, event.p) &&
+        current->arc == event.arc) {
+      return 1;
+    }
+    current = current->next;
+  }
+
+  return 0;
+}
+
+
+void add_event_if_nonexistent(queue_T *queue, enum event_type type, 
+                              point2D_T p, arc_T *arc)
 {
   if (!queue) {
     printf("ERROR!! Can't add event to invalid queue...\n");
@@ -330,11 +357,18 @@ void add_event(event_T **queue, enum event_type type,
   }
 
   event_T *new = new_event(type, p, arc);
+  // Case empty queue
   if (!*queue) {
     *queue = new;
     return;
   }
-
+  
+  // Check existance of event
+  if (event_exists_p(*queue, *new)) {
+    free(new);
+    return;
+  }
+  
   event_T *current = *queue;
   event_T *next = current->next;
   while (next && next->p.y > p.y) {
@@ -345,18 +379,14 @@ void add_event(event_T **queue, enum event_type type,
   if (current == *queue && p.y > current->p.y) {
     new->next = current;
     *queue = new;
-  } else if (p.y == current->p.y && p.x == current->p.x) {
-    printf("ERROR!! DUPLICATE EVENT???\n");
-    exit(1);
   } else {
     new->next = next;
     current->next = new;
   }
-  return;
 }
 
 
-void add_vertex_events(event_T **queue, arc_T *arc)
+void add_vertex_events_involving(queue_T *queue, arc_T *arc)
 {
   arc_T *left2;
   arc_T *left = arc->left;
@@ -368,12 +398,12 @@ void add_vertex_events(event_T **queue, arc_T *arc)
   if (left && arc) {
     left2 = left->left;
       if (left2 && points_unique_3(left2->focus, left->focus, arc->focus)) {
-      circ = points2circle(left2->focus, left->focus, arc->focus);
-      p.x = circ.c.x;
-      p.y = circ.c.y - circ.R;
-      if (p.y < arc->focus.y && !circle_contains_seeds_p(*queue, circ)) {
-        add_event(queue, EVENT_VERTEX, p, left); 
-      }
+        circ = points2circle(left2->focus, left->focus, arc->focus);
+        p.x = circ.c.x;
+        p.y = circ.c.y - circ.R;
+        if (p.y < arc->focus.y && !circle_contains_seeds_p(*queue, circ)) {
+          add_event_if_nonexistent(queue, EVENT_VERTEX, p, left); 
+        }
     }
   }
 
@@ -383,7 +413,7 @@ void add_vertex_events(event_T **queue, arc_T *arc)
     p.x = circ.c.x;
     p.y = circ.c.y - circ.R;
     if (p.y < arc->focus.y && !circle_contains_seeds_p(*queue, circ)) {
-      add_event(queue, EVENT_VERTEX, p, arc); 
+      add_event_if_nonexistent(queue, EVENT_VERTEX, p, arc); 
     }
   }
 
@@ -394,45 +424,105 @@ void add_vertex_events(event_T **queue, arc_T *arc)
       p.x = circ.c.x;
       p.y = circ.c.y - circ.R;
       if (p.y < arc->focus.y && !circle_contains_seeds_p(*queue, circ)) {
-        add_event(queue, EVENT_VERTEX, p, right); 
+        add_event_if_nonexistent(queue, EVENT_VERTEX, p, right); 
       }
     }
   }
+}
 
 
-  return;
+void remove_vertex_events_involving(queue_T *queue, arc_T *arc)
+{
+  if (!queue) {
+    printf("ERROR! Cannot remove events from invalid queue...\n");
+    exit(1);
+  }
+  
+  event_T *current = *queue;
+  if (!current) {
+    return;
+  }
+  
+  // Crop head of the queue
+  while (current && current->type == EVENT_VERTEX && (
+        current->arc == arc ||
+        current->arc->right == arc ||
+        current->arc->left == arc) ) {
+    *queue = current->next;
+    free(current);
+    current = *queue;
+  }
+  if (!current) {
+    return;
+  }
+  
+  event_T *next = current->next;
+  while (next) {
+    if (next->type == EVENT_VERTEX && (
+        next->arc == arc || 
+        next->arc->right == arc || 
+        next->arc->left == arc) ) {
+      // Delete event (Don't change current)
+      current->next = next->next;
+      free(next);
+      next = current->next;
+    } else {
+      current = next;
+      next = current->next;
+    }
+  }
 }
 
 
 void delete_arc(beachline_T *bline, arc_T *arc)
 {
-  if (!bline || !*bline) {
-    printf("ERROR! Can't delete arc from invalid beachline...\n");
+  if (!arc || !*bline) {
+    printf("ERROR! Invalid pointers in delete_arc...\n");
     exit(1);
   }
-
-  arc_T *current = *bline;
-
-  while (current && current != arc) {
-    current = current->right;
+  
+  // Case arc is the left-most
+  if (*bline == arc) {
+    *bline = arc->right;
+    (*bline)->left = NULL;
+    free(arc);
+    return;
   }
 
-  if (!current) {
-    printf("ERROR! Cannot find arc to delete in beachline...\n");
+  arc_T *right = arc->right;
+  arc_T *left = arc->left;
+  if (right) {
+    right->left = arc->left;
+  }
+  // If here, arc should already have a valid left side...
+  if (!left) {
+    printf("Uh oh should not see this, invalid left arc in delete_arc\n");
     exit(1);
   }
+  left->right = arc->right;
+  free(arc);
+}
 
-  current->left->right = current->right;
-  current->right->left = current->left;
-  free(current);
 
-  return;
+void free_beachline(beachline_T bline)
+{
+  if (!bline) {
+    return;
+  }
+  
+  arc_T *next = bline->right;
+  free(bline);
+  while(next) {
+    bline = next;
+    next = bline->right;
+    free(bline);
+  }
 }
 
 
 vor_diagram_T *fortune_algorithm(point2D_T *seeds, int N)
 {
-  event_T *queue = initialize_queue(seeds, N);
+  queue_T queue = initialize_queue(seeds, N);
 
   vor_diagram_T *diagram = NULL;
   beachline_T bline = NULL;
@@ -446,20 +536,25 @@ vor_diagram_T *fortune_algorithm(point2D_T *seeds, int N)
 
     if (event.type == EVENT_SITE) {
       arc_T *arc = insert_arc(&bline, event.p);
-      add_vertex_events(&queue, arc);
+      remove_vertex_events_involving(&queue, arc->left);
+      add_vertex_events_involving(&queue, arc);
       
     } else if (event.type == EVENT_VERTEX) {
+      arc_T *left = event.arc->left; 
+      arc_T *right = event.arc->right;
+      remove_vertex_events_involving(&queue, event.arc);
       delete_arc(&bline, event.arc);
+      if (left) add_vertex_events_involving(&queue, left);
+      if (right) add_vertex_events_involving(&queue, right);
 
     } else {
       printf("ERROR! Unknown event! Should never see this...\n");
       exit(1);
     }
 
-    print_beachline(bline);
  }
 
-  free(bline);
+  free_beachline(bline);
 
   return diagram;
 }
