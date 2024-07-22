@@ -64,7 +64,6 @@ arc_T *find_arc_above(beachline_T bline, point2D_T focus)
   // Return pointer to arc of beachline that lies directly above new focus.
   // This is done by comparing focus.x with intersections of existing arcs
   if (!bline) {
-    printf("ERROR! Trying to find arc of invalid bline\n");
     return NULL;
   }
 
