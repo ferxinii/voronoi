@@ -2,8 +2,8 @@
 #define VORONOI_FORTUNE_H
 
 #include "geometry.h"
-
-// ---- Voronoi diagram ----
+#include "beachline.h"
+#include "queue.h"
 
 typedef struct vertex_T {
   double x, y;
@@ -28,6 +28,10 @@ typedef struct vor_diagram_T {
   int N_faces;
   struct face_T *faces;
 } vor_diagram_T;
+
+void event_site(queue_T *queue, beachline_T *bline, event_T event);
+
+void event_vertex(queue_T *queue, beachline_T *bline, event_T event);
 
 vor_diagram_T *fortune_algorithm(point2D_T *seeds, int N);
 

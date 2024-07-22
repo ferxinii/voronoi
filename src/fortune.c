@@ -30,6 +30,25 @@
 */
 
 
+void event_site(queue_T *queue, beachline_T *bline, event_T event)
+{
+  arc_T *arc = insert_arc(bline, event.p);
+  remove_vertex_events_involving(queue, arc->left);
+  add_vertex_events_involving(queue, arc);
+}
+
+
+void event_vertex(queue_T *queue, beachline_T *bline, event_T event)
+{
+  arc_T *left = event.arc->left; 
+  arc_T *right = event.arc->right;
+  remove_vertex_events_involving(queue, event.arc);
+  delete_arc(bline, event.arc);
+  if (left) add_vertex_events_involving(queue, left);
+  if (right) add_vertex_events_involving(queue, right);
+}
+
+
 vor_diagram_T *fortune_algorithm(point2D_T *seeds, int N)
 {
   queue_T queue = initialize_queue(seeds, N);
@@ -45,18 +64,9 @@ vor_diagram_T *fortune_algorithm(point2D_T *seeds, int N)
     print_beachline(bline);
 
     if (event.type == EVENT_SITE) {
-      arc_T *arc = insert_arc(&bline, event.p);
-      remove_vertex_events_involving(&queue, arc->left);
-      add_vertex_events_involving(&queue, arc);
-      
+      event_site(&queue, &bline, event);
     } else if (event.type == EVENT_VERTEX) {
-      arc_T *left = event.arc->left; 
-      arc_T *right = event.arc->right;
-      remove_vertex_events_involving(&queue, event.arc);
-      delete_arc(&bline, event.arc);
-      if (left) add_vertex_events_involving(&queue, left);
-      if (right) add_vertex_events_involving(&queue, right);
-
+      event_vertex(&queue, &bline, event);
     } else {
       printf("ERROR! Unknown event! Should never see this...\n");
       exit(1);
