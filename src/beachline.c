@@ -65,7 +65,7 @@ arc_T *find_arc_above(beachline_T bline, point2D_T focus)
   // This is done by comparing focus.x with intersections of existing arcs
   if (!bline) {
     printf("ERROR! Trying to find arc of invalid bline\n");
-    exit(1);
+    return NULL;
   }
 
   arc_T *current = bline;
@@ -102,16 +102,14 @@ arc_T *find_arc_above(beachline_T bline, point2D_T focus)
 }
 
 
-arc_T *insert_arc(beachline_T *bline, const point2D_T focus)
+arc_T *insert_arc(beachline_T *bline, arc_T *arc_above, point2D_T focus)
 {
-  // Check if beachline is empty
-  if (!*bline) {
-    *bline = new_arc(focus);
-    return *bline;
-  }
-  
-  arc_T *arc_above = find_arc_above(*bline, focus);
   arc_T *new = new_arc(focus);
+  if (!arc_above) {
+    *bline = new;
+    return new;
+  }
+
   arc_T *above_copy = new_arc(arc_above->focus);
   
   // above  

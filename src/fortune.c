@@ -6,6 +6,14 @@
 #include "include/beachline.h"
 
 
+/* TODO
+ * [ ] Plotting module. To see seeds and events for the moment (whole diagram in the future)
+ *    [ ] This may serve to verify current code...
+ * [ ] Work on DCEL to construct real voronoi diagram...
+ * [ ] Make code more efficient: Use binary trees istead of linked lists for the beachline.
+*/
+
+
 /* FROM: CMSC 754: Lecture 11, Voronoi Diagrams and Fortune’s Algorithm, Dave Mount, Spring 2020
  *
  * Site event:  Sweep line passes over a new site.
@@ -31,9 +39,10 @@
 
 
 void event_site(queue_T *queue, beachline_T *bline, event_T event)
-{
-  arc_T *arc = insert_arc(bline, event.p);
-  remove_vertex_events_involving(queue, arc->left);
+{ 
+  arc_T *arc_above = find_arc_above(*bline, event.p);
+  remove_vertex_events_involving(queue, arc_above);
+  arc_T *arc = insert_arc(bline, arc_above, event.p);
   add_vertex_events_involving(queue, arc);
 }
 
