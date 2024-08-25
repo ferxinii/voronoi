@@ -13,7 +13,8 @@ typedef struct event_T {
   enum event_type type;
   struct event_T *next;
   point2D_T p; 
-  arc_T *arc;
+  point2D_T circ_c;  // Only for vertex events
+  arc_T *arc;  // Only for vertex events
 } event_T;
 
 typedef event_T *queue_T;
@@ -31,12 +32,12 @@ event_T pop_event(queue_T *queue);
 int event_exists_p(queue_T queue, event_T event);
 
 void add_event_if_nonexistent(queue_T *queue, enum event_type type, 
-                              point2D_T p, arc_T *arc);
+                              point2D_T p, point2D_T circ_c, arc_T *arc);
 
-void add_vertex_events_involving(queue_T *queue, arc_T *arc);
+void add_vertex_events_involving(queue_T *queue, arc_T *arc, double current_y);
 
 void remove_vertex_events_involving(queue_T *queue, arc_T *arc);
 
-int circle_contains_seeds_p(queue_T queue, circle_T circle);
+int circle_contains_site_event_p(queue_T queue, circle_T circle);
 
 #endif

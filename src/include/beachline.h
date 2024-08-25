@@ -2,11 +2,15 @@
 #define VORONOI_BEACHLINE_H
 
 #include "geometry.h"
+#include "dcel.h"
 
 typedef struct arc_T {
-  struct point2D_T focus;
+  point2D_T focus;
   struct arc_T *left;
   struct arc_T *right;
+  site_T *site;
+  edge_T *l_edge;
+  edge_T *r_edge;
 } arc_T;
 
 typedef arc_T *beachline_T;

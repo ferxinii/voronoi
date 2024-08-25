@@ -1,8 +1,8 @@
 #include "include/queue.h"
+#include "include/constants.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-
 
 void print_queue(queue_T queue) 
 {
@@ -119,8 +119,8 @@ int event_exists_p(queue_T queue, event_T event)
   event_T *current = queue;
   while (current) {
     if (current->type == event.type &&
-        points_equal(current->p, event.p) &&
-        current->arc == event.arc) {
+        points_equal(current->p, event.p)) { //&&
+        //current->arc == event.arc) {
       return 1;
     }
     current = current->next;
@@ -131,7 +131,7 @@ int event_exists_p(queue_T queue, event_T event)
 
 
 void add_event_if_nonexistent(queue_T *queue, enum event_type type, 
-                              point2D_T p, arc_T *arc)
+                              point2D_T p, point2D_T circ_c, arc_T *arc)
 {
   if (!queue) {
     printf("ERROR!! Can't add event to invalid queue...\n");
@@ -139,6 +139,7 @@ void add_event_if_nonexistent(queue_T *queue, enum event_type type,
   }
 
   event_T *new = new_event(type, p, arc);
+  new->circ_c = circ_c;
   // Case empty queue
   if (!*queue) {
     *queue = new;
@@ -168,7 +169,7 @@ void add_event_if_nonexistent(queue_T *queue, enum event_type type,
 }
 
 
-void add_vertex_events_involving(queue_T *queue, arc_T *arc)
+void add_vertex_events_involving(queue_T *queue, arc_T *arc, double current_y)
 {
   arc_T *left2;
   arc_T *left = arc->left;
@@ -183,8 +184,9 @@ void add_vertex_events_involving(queue_T *queue, arc_T *arc)
         circ = points2circle(left2->focus, left->focus, arc->focus);
         p.x = circ.c.x;
         p.y = circ.c.y - circ.R;
-        if (p.y < arc->focus.y && !circle_contains_seeds_p(*queue, circ)) {
-          add_event_if_nonexistent(queue, EVENT_VERTEX, p, left); 
+        if (p.y - current_y < -EPS && !circle_contains_site_event_p(*queue, circ)) {
+          add_event_if_nonexistent(queue, EVENT_VERTEX, p, circ.c, left); 
+          //printf("%e\n", p.y-current_y);
         }
     }
   }
@@ -194,8 +196,9 @@ void add_vertex_events_involving(queue_T *queue, arc_T *arc)
     circ = points2circle(left->focus, arc->focus, right->focus);
     p.x = circ.c.x;
     p.y = circ.c.y - circ.R;
-    if (p.y < arc->focus.y && !circle_contains_seeds_p(*queue, circ)) {
-      add_event_if_nonexistent(queue, EVENT_VERTEX, p, arc); 
+    if (p.y - current_y < -EPS && !circle_contains_site_event_p(*queue, circ)) {
+      add_event_if_nonexistent(queue, EVENT_VERTEX, p, circ.c, arc); 
+      //printf("%e\n", p.y-current_y);
     }
   }
 
@@ -205,8 +208,9 @@ void add_vertex_events_involving(queue_T *queue, arc_T *arc)
       circ = points2circle(arc->focus, right->focus, right2->focus);
       p.x = circ.c.x;
       p.y = circ.c.y - circ.R;
-      if (p.y < arc->focus.y && !circle_contains_seeds_p(*queue, circ)) {
-        add_event_if_nonexistent(queue, EVENT_VERTEX, p, right); 
+      if (p.y - current_y < -EPS && !circle_contains_site_event_p(*queue, circ)) {
+        add_event_if_nonexistent(queue, EVENT_VERTEX, p, circ.c, right); 
+        //printf("%e\n", p.y-current_y);
       }
     }
   }
@@ -256,7 +260,7 @@ void remove_vertex_events_involving(queue_T *queue, arc_T *arc)
 }
 
 
-int circle_contains_seeds_p(queue_T queue, circle_T circle) 
+int circle_contains_site_event_p(queue_T queue, circle_T circle) 
 {
   event_T *event = queue;
   while (event) {

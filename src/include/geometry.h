@@ -9,6 +9,8 @@ typedef struct point2D_T {
 
 point2D_T *random_seeds(double size, int N);
 
+void write_seeds_txt(point2D_T *seeds, int N, const char *fname);
+
 int points_equal(point2D_T p1, point2D_T p2);
 
 int points_unique_3(point2D_T p1, point2D_T p2, point2D_T p3);

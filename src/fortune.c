@@ -4,7 +4,7 @@
 #include "include/queue.h"
 #include "include/geometry.h"
 #include "include/beachline.h"
-
+#include "include/plot.h"
 
 /* TODO
  * [ ] Plotting module. To see seeds and events for the moment (whole diagram in the future)
@@ -43,7 +43,8 @@ void event_site(queue_T *queue, beachline_T *bline, event_T event)
   arc_T *arc_above = find_arc_above(*bline, event.p);
   remove_vertex_events_involving(queue, arc_above);
   arc_T *arc = insert_arc(bline, arc_above, event.p);
-  add_vertex_events_involving(queue, arc);
+  //printf("%f\n", event.p.y);
+  add_vertex_events_involving(queue, arc, event.p.y);
 }
 
 
@@ -53,39 +54,55 @@ void event_vertex(queue_T *queue, beachline_T *bline, event_T event)
   arc_T *right = event.arc->right;
   remove_vertex_events_involving(queue, event.arc);
   delete_arc(bline, event.arc);
-  if (left) add_vertex_events_involving(queue, left);
-  if (right) add_vertex_events_involving(queue, right);
+  if (left) add_vertex_events_involving(queue, left, event.p.y);
+  if (right) add_vertex_events_involving(queue, right, event.p.y);
 }
 
 
-vor_diagram_T *fortune_algorithm(point2D_T *seeds, int N)
+site_T *fortune_algorithm(point2D_T *seeds, int N)
 {
+  FILE *pipe = popen_gnuplot();
+  start_plot(pipe);
+  add_seeds(pipe, seeds, N);
+  
+
   queue_T queue = initialize_queue(seeds, N);
 
-  vor_diagram_T *diagram = NULL;
+  site_T *sites = initialise_sites(seeds, N);
   beachline_T bline = NULL;
 
   while (queue) {
     event_T event = pop_event(&queue);
     putchar('\n');
-    print_event(&event);
-    print_queue(queue);
-    print_beachline(bline);
+    //print_beachline(bline);
+    //print_event(&event);
+    //print_queue(queue);
 
     if (event.type == EVENT_SITE) {
       event_site(&queue, &bline, event);
     } else if (event.type == EVENT_VERTEX) {
       event_vertex(&queue, &bline, event);
+      add_point(pipe, event.circ_c, "pt 7 ps 3 lc 'red'");
+      printf("%f, %f\n", event.circ_c.y, event.p.y);
+      add_circle(pipe, event.circ_c, event.circ_c.y - event.p.y);
+      printf("x: %f, y: %f\n", event.circ_c.x, event.circ_c.y);
     } else {
       printf("ERROR! Unknown event! Should never see this...\n");
       exit(1);
     }
+    
+    printf("\n");
+    //print_beachline(bline);
+    //print_queue(queue);
+    printf("\n NEXT \n");
  }
 
-  print_beachline(bline);
-  free_beachline(bline);
+  //print_beachline(bline);
+  //free_beachline(bline);
 
-  return diagram;
+  end_plot(pipe);
+
+  return sites;
 }
 
 

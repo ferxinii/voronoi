@@ -1,4 +1,5 @@
 #include "include/geometry.h"
+#include "include/constants.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -16,9 +17,19 @@ point2D_T *random_seeds(double size, int N)
 }
 
 
+void write_seeds_txt(point2D_T *seeds, int N, const char *fname)
+{
+  FILE *fp = fopen(fname, "w");
+  for (int ii=0; ii<N; ii++) {
+    fprintf(fp, "%f, %f\n", seeds[ii].x, seeds[ii].y);
+  }
+  fclose(fp);
+}
+
+
 int points_equal(point2D_T p1, point2D_T p2)
 {
-  return (p1.x == p2.x && p1.y == p2.y);
+  return (fabs(p1.x - p2.x) < EPS && fabs(p1.y - p2.y) < EPS);
 }
 
 
