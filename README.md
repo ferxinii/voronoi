@@ -1,4 +1,4 @@
-# voronoi
+# voronoi_fortune
 
 This is an incomplete, simple and naive implementation of Fortune's algorithm. 
 It's main purpose is to visualize the inner workings of the algorithms by the sweep of a *beachline*.
