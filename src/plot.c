@@ -1,10 +1,12 @@
 #include "include/plot.h"
 #include "include/geometry.h"
+#include "include/beachline.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <float.h>
 
 
-FILE *popen_gnuplot(void)
+FILE *popen_gnuplot(char *file_output)
 {
   FILE *pipe = popen("gnuplot -persistent", "w");
   if (!pipe) {
@@ -13,7 +15,7 @@ FILE *popen_gnuplot(void)
   }
 
   fprintf(pipe, "set terminal png enhanced font 'Arial,18' size 1080,1080 enhanced \n");
-  fprintf(pipe, "set output './plot.png'\n");
+  fprintf(pipe, "set output '%s'\n", file_output);
   fprintf(pipe, "set xrange [0:1]\n");
   fprintf(pipe, "set yrange [0:1]\n");
   fprintf(pipe, "set size square\n");
@@ -25,6 +27,7 @@ FILE *popen_gnuplot(void)
 void start_plot(FILE *pipe)
 {
   fprintf(pipe, "");
+  fflush(pipe);
   fprintf(pipe, "plot ");
 }
 
@@ -32,7 +35,7 @@ void start_plot(FILE *pipe)
 void end_plot(FILE *pipe)
 {
   fprintf(pipe, "\n");
-  fclose(pipe);
+  pclose(pipe);
 }
 
 
@@ -58,10 +61,68 @@ void add_circle(FILE *pipe, point2D_T center, double radius)
 
 void plot_seeds(const point2D_T *seeds, int N)
 {
-  FILE *pipe = popen_gnuplot();
+  FILE *pipe = popen_gnuplot("./plot.png");
   start_plot(pipe);
   add_seeds(pipe, seeds, N);
   end_plot(pipe);
-  
 }
 
+
+void add_parabola(FILE *pipe, point2D_T focus, double directrix, double min_x, double max_x)
+{
+  int N = 100;
+
+  fprintf(pipe,"\"<echo \'");
+  for (int ii=0; ii<N; ii++) {
+    double x = min_x + ii * (max_x - min_x) / (N - 1);
+    fprintf(pipe, "%f %f", x, parabola(focus, directrix, x));
+    if (ii < N-1) {
+      fprintf(pipe, "\\n");
+    }
+  }
+  //fprintf(pipe, "\'\" w lines notitle lt 8, ");
+  fprintf(pipe, "\'\" w lines notitle, ");
+}
+
+
+void add_yline(FILE *pipe, double y) 
+{
+  fprintf(pipe, "\"<echo \'%f %f\\n%f %f'\" w line lt 1 notitle, ", 0.0, y, 1.0, y);
+}
+
+
+void plot_current_frame(beachline_T bline, double sweep_y, point2D_T *seeds, int N)
+{
+  char filename[50];
+  static int num_frame = 0;
+  FILE *pipe = NULL;
+  if (bline) {
+    num_frame++;
+    snprintf(filename, 50, "./frames/frame_%d.png", num_frame);
+    printf("%s\n", filename);
+    pipe = popen_gnuplot(filename);
+    start_plot(pipe);
+    add_seeds(pipe, seeds, N);
+    add_yline(pipe, sweep_y);
+    printf("??\n");
+  }
+
+  arc_T *current = bline;
+  while (current) {
+    roots2_T bounds = arc_bounds(current, sweep_y);
+    if (bounds.neg == -FLT_MAX && bounds.pos > 0) {
+      bounds.neg = 0;
+    }
+    if (bounds.pos == FLT_MAX && bounds.neg < 1) {
+      bounds.pos = 1;
+    }
+    bounds.neg = 0;
+    bounds.pos = 1;
+    add_parabola(pipe, current->focus, sweep_y, bounds.neg, bounds.pos);
+    current = current->right;
+  }
+  
+  printf("||\n");
+  if (bline) end_plot(pipe);
+  printf("!!!\n");
+}

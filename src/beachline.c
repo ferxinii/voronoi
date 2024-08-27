@@ -59,15 +59,78 @@ void free_beachline(beachline_T bline)
 }
 
 
+roots2_T arc_bounds(arc_T *arc, double directrix)
+{
+  roots2_T bounds = {.neg = -FLT_MAX, .pos = FLT_MAX};
+  if (!arc) {
+    printf("ERROR!! Trying to find bounds of invalid arc...\n");
+    exit(1);
+  }
+  
+  arc_T *left = arc->left;
+  arc_T *right = arc->right;
+
+  roots2_T intersect_l, intersect_r;
+  if (left && right) {
+    intersect_l = intersect_parabs(left->focus, arc->focus, directrix);
+    intersect_r = intersect_parabs(arc->focus, right->focus, directrix);
+    
+    if (arc->focus.x > left->focus.x) {
+      bounds.neg = intersect_l.neg;
+    } else {
+      bounds.neg = intersect_l.pos;
+    }
+    if (arc->focus.x < right->focus.x) {
+      bounds.pos = intersect_r.pos;
+    } else {
+      bounds.pos = intersect_r.neg;
+    }
+  } else if (!left && right) {
+    intersect_r = intersect_parabs(arc->focus, right->focus, directrix);
+
+    if (arc->focus.x < right->focus.x) {
+      bounds.pos = intersect_r.pos;
+    } else {
+      bounds.pos = intersect_r.neg;
+    }
+  } else if (left && !right) {
+    intersect_l = intersect_parabs(left->focus, arc->focus, directrix);
+
+    if (arc->focus.x > left->focus.x) {
+      bounds.neg = intersect_l.neg;
+    } else {
+      bounds.neg = intersect_l.pos;
+    }
+    bounds.neg = 0;
+    bounds.pos = 1;
+  }
+
+  return bounds; 
+}
+
+
 arc_T *find_arc_above(beachline_T bline, point2D_T focus)
 {
   // Return pointer to arc of beachline that lies directly above new focus.
-  // This is done by comparing focus.x with intersections of existing arcs
+  // This is done by comparing focus.x with bounds of existing arcs
   if (!bline) {
     return NULL;
   }
 
   arc_T *current = bline;
+  while (current->right) {
+    roots2_T bounds = arc_bounds(current, focus.y);
+    if (focus.x > bounds.neg && focus.x < bounds.pos) {
+      return current;
+    }
+
+    current = current->right;
+  }
+  
+  printf("end!\n");
+  return current;
+}
+/*
   arc_T *next = bline->right;
 
   roots2_T next_intersect;
@@ -98,7 +161,7 @@ arc_T *find_arc_above(beachline_T bline, point2D_T focus)
     printf("ERROR!! Reached rightmost arc without finding arc above...\n");
     exit(1);
   }
-}
+} */
 
 
 arc_T *insert_arc(beachline_T *bline, arc_T *arc_above, point2D_T focus)

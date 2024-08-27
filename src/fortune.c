@@ -61,10 +61,9 @@ void event_vertex(queue_T *queue, beachline_T *bline, event_T event)
 
 site_T *fortune_algorithm(point2D_T *seeds, int N)
 {
-  FILE *pipe = popen_gnuplot();
+  FILE *pipe = popen_gnuplot("./plot.png");
   start_plot(pipe);
   add_seeds(pipe, seeds, N);
-  
 
   queue_T queue = initialize_queue(seeds, N);
 
@@ -74,10 +73,11 @@ site_T *fortune_algorithm(point2D_T *seeds, int N)
   while (queue) {
     event_T event = pop_event(&queue);
     putchar('\n');
-    //print_beachline(bline);
+    print_beachline(bline);
     //print_event(&event);
     //print_queue(queue);
 
+    plot_current_frame(bline, event.p.y, seeds, N);
     if (event.type == EVENT_SITE) {
       event_site(&queue, &bline, event);
     } else if (event.type == EVENT_VERTEX) {

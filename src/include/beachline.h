@@ -21,6 +21,8 @@ arc_T *new_arc(point2D_T focus);
 
 void free_beachline(beachline_T bline);
 
+roots2_T arc_bounds(arc_T *arc, double directrix);
+
 arc_T *find_arc_above(beachline_T bline, point2D_T focus);
 
 arc_T *insert_arc(beachline_T *bline, arc_T *arc_above, point2D_T focus);

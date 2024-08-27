@@ -75,6 +75,12 @@ roots2_T intersect_parabs(point2D_T f1, point2D_T f2, double directrix)
     out.pos = (-B - sqrt(B*B - 4*A*C)) / (2*A);
     out.neg = (-B + sqrt(B*B - 4*A*C)) / (2*A);
   }
+
+  if (out.pos < out.neg) {
+    double aux = out.neg;
+    out.neg = out.pos;
+    out.pos = aux;
+  }
   return out;
 }
 
