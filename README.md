@@ -14,5 +14,9 @@ As such, the code generates some random seeds and produces a video output (using
 - Produce a Voronoi diagram using DCEL (*Doubly Connected Edge List*).
 
 
-# EXAMPLE OF OUTPUT
-![til](./examples/video.gif)
+# EXAMPLE OF CURRENT OUTPUT
+<p align="center">
+  <img src="./examples/video.gif" alt="Example GIF">
+  <img src="./examples/plot.png" alt="Example of Voronoi vertices">
+</p>
+
