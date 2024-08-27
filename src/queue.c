@@ -265,7 +265,7 @@ int circle_contains_seeds(circle_T circle, point2D_T *seeds, int N)
   for (int ii=0; ii<N; ii++) {
     double d_2 = pow((seeds[ii].x-circle.c.x), 2) + 
                  pow((seeds[ii].y-circle.c.y), 2);
-    if (d_2 < circle.R * circle.R) {
+    if (d_2 < circle.R * circle.R - EPS) {
         return 1;
     }
   }

@@ -4,6 +4,38 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <float.h>
+#include <dirent.h>
+#include <string.h>
+
+void remove_files_in_directory(const char *path)
+{
+  struct dirent *entry;
+  DIR *dp = opendir(path);
+
+  if (dp == NULL) {
+    perror("opendir");
+    return;
+  }
+
+  while ((entry = readdir(dp))) {
+    // Skip the "." and ".." directories
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+      continue;
+    }
+
+    // Construct the full path of the file to be deleted
+    char filepath[1024];
+    snprintf(filepath, sizeof(filepath), "%s/%s", path, entry->d_name);
+
+    // Remove the file
+    if (remove(filepath) != 0) {
+      printf("Coultd not remove file...\n");
+      exit(1);
+    }
+  }
+
+  closedir(dp);
+}
 
 
 FILE *popen_gnuplot(char *file_output)
@@ -80,14 +112,13 @@ void add_parabola(FILE *pipe, point2D_T focus, double directrix, double min_x, d
       fprintf(pipe, "\\n");
     }
   }
-  //fprintf(pipe, "\'\" w lines notitle lt 8, ");
-  fprintf(pipe, "\'\" w lines notitle, ");
+  fprintf(pipe, "\'\" w lines notitle lt 6 lw 3, ");
 }
 
 
 void add_yline(FILE *pipe, double y) 
 {
-  fprintf(pipe, "\"<echo \'%f %f\\n%f %f'\" w line lt 1 notitle, ", 0.0, y, 1.0, y);
+  fprintf(pipe, "\"<echo \'%f %f\\n%f %f'\" w line lt 7 lw 3 notitle, ", 0.0, y, 1.0, y);
 }
 
 

@@ -5,6 +5,8 @@
 #include "beachline.h"
 #include <stdio.h>
 
+void remove_files_in_directory(const char *path);
+
 FILE *popen_gnuplot(char *file_output);
 
 void start_plot(FILE *pipe);

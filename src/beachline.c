@@ -125,41 +125,8 @@ arc_T *find_arc_above(beachline_T bline, point2D_T focus)
     current = current->right;
   }
   
-  printf("end!\n");
   return current;
 }
-/*
-  arc_T *next = bline->right;
-
-  roots2_T next_intersect;
-
-  double x_prev = - FLT_MAX;
-  double x_next;
-  while (next) {
-    next_intersect = intersect_parabs(current->focus, 
-                                          next->focus, 
-                                          focus.y);
-    x_next = next_intersect.neg;
-    if (focus.x > x_prev && focus.x < x_next) {
-      return current;
-    } else if (focus.x == x_prev || focus.x == x_next) {
-      printf("ERROR!! Intersection just above focus..\n");
-      exit(1);
-    } else {
-      x_prev = x_next; 
-      current = next;
-      next = current->right;
-    }
-  }
-
-  // REACHED RIGHTMOST ARC
-  if (focus.x > x_prev) {
-    return current;
-  } else {
-    printf("ERROR!! Reached rightmost arc without finding arc above...\n");
-    exit(1);
-  }
-} */
 
 
 arc_T *insert_arc(beachline_T *bline, arc_T *arc_above, point2D_T focus)
