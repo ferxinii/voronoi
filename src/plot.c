@@ -7,6 +7,7 @@
 #include <dirent.h>
 #include <string.h>
 
+
 void remove_files_in_directory(const char *path)
 {
   struct dirent *entry;
@@ -67,7 +68,6 @@ void start_plot(FILE *pipe)
 void end_plot(FILE *pipe)
 {
   fprintf(pipe, "\n");
-  pclose(pipe);
 }
 
 
@@ -122,19 +122,10 @@ void add_yline(FILE *pipe, double y)
 }
 
 
-void plot_current_frame(beachline_T bline, double sweep_y, point2D_T *seeds, int N)
+void add_bline(FILE *pipe, beachline_T bline, double sweep_y)
 {
-  char filename[50];
-  static int num_frame = 0;
-  FILE *pipe = NULL;
-  if (bline) {
-    num_frame++;
-    snprintf(filename, 50, "./frames/frame_%d.png", num_frame);
-    //printf("%s\n", filename);
-    pipe = popen_gnuplot(filename);
-    start_plot(pipe);
-    add_seeds(pipe, seeds, N);
-    add_yline(pipe, sweep_y);
+  if (!bline) {
+    return;
   }
 
   arc_T *current = bline;
@@ -152,5 +143,4 @@ void plot_current_frame(beachline_T bline, double sweep_y, point2D_T *seeds, int
     current = current->right;
   }
   
-  if (bline) end_plot(pipe);
 }

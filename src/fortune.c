@@ -58,9 +58,11 @@ site_T *fortune_algorithm(point2D_T *seeds, int N)
 {
 remove_files_in_directory("./frames");
 
-  FILE *pipe = popen_gnuplot("./plot.png");
-  start_plot(pipe);
-  add_seeds(pipe, seeds, N);
+  system("rm -f ./video.mp4");
+  FILE *pipe_plot = popen_gnuplot("./plot.png");
+  FILE *pipe_video = popen_gnuplot("|ffmpeg -loglevel error -f png_pipe -s:v 1920x1080 -i pipe: -pix_fmt yuv420p -c:v libx264 -crf 18 ./video.mp4");
+  start_plot(pipe_plot);
+  add_seeds(pipe_plot, seeds, N);
 
   queue_T queue = initialize_queue(seeds, N);
 
@@ -70,28 +72,33 @@ remove_files_in_directory("./frames");
   double prev_y = 1;
   while (queue) {
     event_T event = pop_event(&queue);
+    printf("Current y: %f\n", event.p.y);
     //putchar('\n');
     //print_beachline(bline);
     //print_event(&event);
     //print_queue(queue);
 
-    // PRINT BEACHLINE EVOLUTION
+    // PLOT VIDEO
     for (int ii=1; ii<10; ii++) {
       double aux_y = prev_y - (prev_y - event.p.y) / 10 * ii;
-      plot_current_frame(bline, aux_y, seeds, N);
+      start_plot(pipe_video);
+      add_seeds(pipe_video, seeds, N);
+      add_bline(pipe_video, bline, aux_y);
+      add_yline(pipe_video, aux_y);
+      end_plot(pipe_video);
     }
     prev_y = event.p.y;
     
     // PROCESS EVENT
-    plot_current_frame(bline, event.p.y, seeds, N);
+    //plot_current_frame(bline, event.p.y, seeds, N);
     if (event.type == EVENT_SITE) {
       event_site(&queue, &bline, event, seeds, N);
     } else if (event.type == EVENT_VERTEX) {
       event_vertex(&queue, &bline, event, seeds, N);
-      add_point(pipe, event.circ_c, "pt 7 ps 3 lc 'red'");
-      printf("%f, %f\n", event.circ_c.y, event.p.y);
-      add_circle(pipe, event.circ_c, event.circ_c.y - event.p.y);
-      printf("x: %f, y: %f\n", event.circ_c.x, event.circ_c.y);
+      add_point(pipe_plot, event.circ_c, "pt 7 ps 3 lc 'red'");
+      //printf("%f, %f\n", event.circ_c.y, event.p.y);
+      add_circle(pipe_plot, event.circ_c, event.circ_c.y - event.p.y);
+      //printf("x: %f, y: %f\n", event.circ_c.x, event.circ_c.y);
     } else {
       printf("ERROR! Unknown event! Should never see this...\n");
       exit(1);
@@ -99,10 +106,10 @@ remove_files_in_directory("./frames");
     
  }
 
-  end_plot(pipe);
+  end_plot(pipe_plot);
+  pclose(pipe_plot);
+  pclose(pipe_video);
   
-  system("rm output.mp4");
-  system("ffmpeg -r 24 -i ./frames/frame_%d.png -c:v libx264 -pix_fmt yuv420p output.mp4");
   return sites;
 }
 
