@@ -6,6 +6,8 @@
 #include "queue.h"
 #include "dcel.h"
 
+void remove_files_in_directory(const char *path);
+
 void event_site(queue_T *queue, beachline_T *bline, event_T event);
 
 void event_vertex(queue_T *queue, beachline_T *bline, event_T event);

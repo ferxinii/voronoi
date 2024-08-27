@@ -1,5 +1,6 @@
 #include "include/beachline.h"
 #include <stdio.h>
+#include <math.h>
 #include <stdlib.h>
 #include <float.h>
 
@@ -59,6 +60,29 @@ void free_beachline(beachline_T bline)
 }
 
 
+double intersection_arcs(point2D_T f, point2D_T f_right, double directrix) {
+  roots2_T intersect = intersect_parabs(f, f_right, directrix);
+  double middle = (f.x + f_right.x) / 2;
+
+  double d1 = fabs(intersect.neg - middle);
+  double d2 = fabs(intersect.pos - middle);
+  if (f.x < f_right.x) {
+    if (d1 < d2) {
+      return intersect.neg;
+    } else {
+      return intersect.pos;
+    }
+  } else {
+    if (d1 < d2) {
+      return intersect.pos;
+    } else {
+      return intersect.neg;
+    }
+  }
+
+}
+
+
 roots2_T arc_bounds(arc_T *arc, double directrix)
 {
   roots2_T bounds = {.neg = -FLT_MAX, .pos = FLT_MAX};
@@ -70,39 +94,13 @@ roots2_T arc_bounds(arc_T *arc, double directrix)
   arc_T *left = arc->left;
   arc_T *right = arc->right;
 
-  roots2_T intersect_l, intersect_r;
   if (left && right) {
-    intersect_l = intersect_parabs(left->focus, arc->focus, directrix);
-    intersect_r = intersect_parabs(arc->focus, right->focus, directrix);
-    
-    if (arc->focus.x > left->focus.x) {
-      bounds.neg = intersect_l.neg;
-    } else {
-      bounds.neg = intersect_l.pos;
-    }
-    if (arc->focus.x < right->focus.x) {
-      bounds.pos = intersect_r.pos;
-    } else {
-      bounds.pos = intersect_r.neg;
-    }
+    bounds.neg = intersection_arcs(left->focus, arc->focus, directrix);
+    bounds.pos = intersection_arcs(arc->focus, right->focus, directrix);
   } else if (!left && right) {
-    intersect_r = intersect_parabs(arc->focus, right->focus, directrix);
-
-    if (arc->focus.x < right->focus.x) {
-      bounds.pos = intersect_r.pos;
-    } else {
-      bounds.pos = intersect_r.neg;
-    }
+    bounds.pos = intersection_arcs(arc->focus, right->focus, directrix);
   } else if (left && !right) {
-    intersect_l = intersect_parabs(left->focus, arc->focus, directrix);
-
-    if (arc->focus.x > left->focus.x) {
-      bounds.neg = intersect_l.neg;
-    } else {
-      bounds.neg = intersect_l.pos;
-    }
-    bounds.neg = 0;
-    bounds.pos = 1;
+    bounds.neg = intersection_arcs(left->focus, arc->focus, directrix);
   }
 
   return bounds; 

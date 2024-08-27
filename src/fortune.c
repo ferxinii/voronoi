@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <dirent.h>
+#include <string.h>
 #include "include/fortune.h"
 #include "include/queue.h"
 #include "include/geometry.h"
@@ -38,6 +40,37 @@
 */
 
 
+void remove_files_in_directory(const char *path)
+{
+  struct dirent *entry;
+  DIR *dp = opendir(path);
+
+  if (dp == NULL) {
+    perror("opendir");
+    return;
+  }
+
+  while ((entry = readdir(dp))) {
+    // Skip the "." and ".." directories
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+      continue;
+    }
+
+    // Construct the full path of the file to be deleted
+    char filepath[1024];
+    snprintf(filepath, sizeof(filepath), "%s/%s", path, entry->d_name);
+
+    // Remove the file
+    if (remove(filepath) != 0) {
+      printf("Coultd not remove file...\n");
+      exit(1);
+    }
+  }
+
+  closedir(dp);
+}
+
+
 void event_site(queue_T *queue, beachline_T *bline, event_T event)
 { 
   arc_T *arc_above = find_arc_above(*bline, event.p);
@@ -61,6 +94,8 @@ void event_vertex(queue_T *queue, beachline_T *bline, event_T event)
 
 site_T *fortune_algorithm(point2D_T *seeds, int N)
 {
+remove_files_in_directory("./frames");
+
   FILE *pipe = popen_gnuplot("./plot.png");
   start_plot(pipe);
   add_seeds(pipe, seeds, N);
@@ -69,13 +104,21 @@ site_T *fortune_algorithm(point2D_T *seeds, int N)
 
   site_T *sites = initialise_sites(seeds, N);
   beachline_T bline = NULL;
-
+  
+  double prev_y = 1;
   while (queue) {
     event_T event = pop_event(&queue);
     putchar('\n');
     print_beachline(bline);
-    //print_event(&event);
-    //print_queue(queue);
+    print_event(&event);
+    print_queue(queue);
+
+    // PRINT BEACHLINE EVOLUTION
+    for (int ii=1; ii<10; ii++) {
+      double aux_y = prev_y - (prev_y - event.p.y) / 10 * ii;
+      plot_current_frame(bline, aux_y, seeds, N);
+    }
+    prev_y = event.p.y;
 
     plot_current_frame(bline, event.p.y, seeds, N);
     if (event.type == EVENT_SITE) {

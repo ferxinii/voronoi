@@ -99,12 +99,11 @@ void plot_current_frame(beachline_T bline, double sweep_y, point2D_T *seeds, int
   if (bline) {
     num_frame++;
     snprintf(filename, 50, "./frames/frame_%d.png", num_frame);
-    printf("%s\n", filename);
+    //printf("%s\n", filename);
     pipe = popen_gnuplot(filename);
     start_plot(pipe);
     add_seeds(pipe, seeds, N);
     add_yline(pipe, sweep_y);
-    printf("??\n");
   }
 
   arc_T *current = bline;
@@ -116,13 +115,11 @@ void plot_current_frame(beachline_T bline, double sweep_y, point2D_T *seeds, int
     if (bounds.pos == FLT_MAX && bounds.neg < 1) {
       bounds.pos = 1;
     }
-    bounds.neg = 0;
-    bounds.pos = 1;
+    //bounds.neg = 0;
+    //bounds.pos = 1;
     add_parabola(pipe, current->focus, sweep_y, bounds.neg, bounds.pos);
     current = current->right;
   }
   
-  printf("||\n");
   if (bline) end_plot(pipe);
-  printf("!!!\n");
 }
