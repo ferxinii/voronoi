@@ -41,7 +41,7 @@ void remove_files_in_directory(const char *path)
 
 FILE *popen_gnuplot(char *file_output)
 {
-  FILE *pipe = popen("gnuplot -persistent", "w");
+  FILE *pipe = popen("gnuplot -persistent 2>&1", "w");
   if (!pipe) {
     printf("ERROR! Cannot open gnuplot pipe...\n");
     exit(1);

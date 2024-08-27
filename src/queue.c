@@ -184,7 +184,7 @@ void add_vertex_events_involving(queue_T *queue, arc_T *arc, double current_y, p
         circ = points2circle(left2->focus, left->focus, arc->focus);
         p.x = circ.c.x;
         p.y = circ.c.y - circ.R;
-        if (p.y - current_y < -EPS && !circle_contains_seeds(circ, seeds, N)) {
+        if (p.y - current_y < -EPS && !circle_contains_seeds(circ, seeds, N, left2->focus, left->focus, arc->focus)) {
           add_event_if_nonexistent(queue, EVENT_VERTEX, p, circ.c, left); 
           //printf("%e\n", p.y-current_y);
         }
@@ -196,7 +196,7 @@ void add_vertex_events_involving(queue_T *queue, arc_T *arc, double current_y, p
     circ = points2circle(left->focus, arc->focus, right->focus);
     p.x = circ.c.x;
     p.y = circ.c.y - circ.R;
-    if (p.y - current_y < -EPS && !circle_contains_seeds(circ, seeds, N)) {
+    if (p.y - current_y < -EPS && !circle_contains_seeds(circ, seeds, N, left->focus, arc->focus, right->focus)) {
       add_event_if_nonexistent(queue, EVENT_VERTEX, p, circ.c, arc); 
       //printf("%e\n", p.y-current_y);
     }
@@ -208,7 +208,7 @@ void add_vertex_events_involving(queue_T *queue, arc_T *arc, double current_y, p
       circ = points2circle(arc->focus, right->focus, right2->focus);
       p.x = circ.c.x;
       p.y = circ.c.y - circ.R;
-      if (p.y - current_y < -EPS && !circle_contains_seeds(circ, seeds, N)) {
+      if (p.y - current_y < -EPS && !circle_contains_seeds(circ, seeds, N, arc->focus, right->focus, right2->focus)) {
         add_event_if_nonexistent(queue, EVENT_VERTEX, p, circ.c, right); 
         //printf("%e\n", p.y-current_y);
       }
@@ -260,12 +260,15 @@ void remove_vertex_events_involving(queue_T *queue, arc_T *arc)
 }
 
 
-int circle_contains_seeds(circle_T circle, point2D_T *seeds, int N) 
+int circle_contains_seeds(circle_T circle, point2D_T *seeds, int N, point2D_T ignore_1, point2D_T ignore_2, point2D_T ignore_3) 
 {
   for (int ii=0; ii<N; ii++) {
     double d_2 = pow((seeds[ii].x-circle.c.x), 2) + 
                  pow((seeds[ii].y-circle.c.y), 2);
-    if (d_2 < circle.R * circle.R - EPS) {
+    if (d_2 < circle.R * circle.R - EPS && 
+        !points_equal(seeds[ii], ignore_1) &&
+        !points_equal(seeds[ii], ignore_2) &&
+        !points_equal(seeds[ii], ignore_3)){
         return 1;
     }
   }

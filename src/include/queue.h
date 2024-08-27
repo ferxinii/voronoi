@@ -38,6 +38,6 @@ void add_vertex_events_involving(queue_T *queue, arc_T *arc, double current_y, p
 
 void remove_vertex_events_involving(queue_T *queue, arc_T *arc);
 
-int circle_contains_seeds(circle_T circle, point2D_T *seeds, int N);
+int circle_contains_seeds(circle_T circle, point2D_T *seeds, int N, point2D_T ignore_1, point2D_T ignore_2, point2D_T ignore_3);
 
 #endif

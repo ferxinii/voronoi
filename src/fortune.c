@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "include/fortune.h"
 #include "include/queue.h"
 #include "include/geometry.h"
@@ -37,7 +38,6 @@ void event_site(queue_T *queue, beachline_T *bline, event_T event, point2D_T *se
   arc_T *arc_above = find_arc_above(*bline, event.p);
   remove_vertex_events_involving(queue, arc_above);
   arc_T *arc = insert_arc(bline, arc_above, event.p);
-  //printf("%f\n", event.p.y);
   add_vertex_events_involving(queue, arc, event.p.y, seeds, N);
 }
 
@@ -107,7 +107,15 @@ site_T *fortune_algorithm(point2D_T *seeds, int N)
   end_plot(pipe_plot);
   pclose(pipe_plot);
   pclose(pipe_video);
-  
+
+  // CONVERT VIDEO TO A GIF
+  sleep(1);  //Delay necessary to create mp4 file correctly!
+  char command_mp4_to_gif[1024];
+  char cwd[256];
+  getcwd(cwd, 256);
+  snprintf(command_mp4_to_gif, 1024, "ffmpeg -loglevel error -i %s/video.mp4 -vf \"fps=12,scale=640:-1:flags=lanczos\" -gifflags +transdiff -y video.gif 2>&1", cwd);
+  system(command_mp4_to_gif);
+
   return sites;
 }
 
