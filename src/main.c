@@ -9,7 +9,7 @@ int main(void)
 {
   srand(time(NULL));
 
-  int N = 4;
+  int N = 10;
   point2D_T *seeds = random_seeds(1, N);
   write_seeds_txt(seeds, N, "seeds.txt");
   //plot_seeds(seeds, N);
@@ -18,3 +18,4 @@ int main(void)
   
   free(seeds);
 }
+

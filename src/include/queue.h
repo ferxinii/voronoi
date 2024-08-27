@@ -34,10 +34,10 @@ int event_exists_p(queue_T queue, event_T event);
 void add_event_if_nonexistent(queue_T *queue, enum event_type type, 
                               point2D_T p, point2D_T circ_c, arc_T *arc);
 
-void add_vertex_events_involving(queue_T *queue, arc_T *arc, double current_y);
+void add_vertex_events_involving(queue_T *queue, arc_T *arc, double current_y, point2D_T *seeds, int N);
 
 void remove_vertex_events_involving(queue_T *queue, arc_T *arc);
 
-int circle_contains_site_event_p(queue_T queue, circle_T circle);
+int circle_contains_seeds(circle_T circle, point2D_T *seeds, int N);
 
 #endif

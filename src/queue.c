@@ -169,7 +169,7 @@ void add_event_if_nonexistent(queue_T *queue, enum event_type type,
 }
 
 
-void add_vertex_events_involving(queue_T *queue, arc_T *arc, double current_y)
+void add_vertex_events_involving(queue_T *queue, arc_T *arc, double current_y, point2D_T *seeds, int N)
 {
   arc_T *left2;
   arc_T *left = arc->left;
@@ -184,7 +184,7 @@ void add_vertex_events_involving(queue_T *queue, arc_T *arc, double current_y)
         circ = points2circle(left2->focus, left->focus, arc->focus);
         p.x = circ.c.x;
         p.y = circ.c.y - circ.R;
-        if (p.y - current_y < -EPS && !circle_contains_site_event_p(*queue, circ)) {
+        if (p.y - current_y < -EPS && !circle_contains_seeds(circ, seeds, N)) {
           add_event_if_nonexistent(queue, EVENT_VERTEX, p, circ.c, left); 
           //printf("%e\n", p.y-current_y);
         }
@@ -196,7 +196,7 @@ void add_vertex_events_involving(queue_T *queue, arc_T *arc, double current_y)
     circ = points2circle(left->focus, arc->focus, right->focus);
     p.x = circ.c.x;
     p.y = circ.c.y - circ.R;
-    if (p.y - current_y < -EPS && !circle_contains_site_event_p(*queue, circ)) {
+    if (p.y - current_y < -EPS && !circle_contains_seeds(circ, seeds, N)) {
       add_event_if_nonexistent(queue, EVENT_VERTEX, p, circ.c, arc); 
       //printf("%e\n", p.y-current_y);
     }
@@ -208,7 +208,7 @@ void add_vertex_events_involving(queue_T *queue, arc_T *arc, double current_y)
       circ = points2circle(arc->focus, right->focus, right2->focus);
       p.x = circ.c.x;
       p.y = circ.c.y - circ.R;
-      if (p.y - current_y < -EPS && !circle_contains_site_event_p(*queue, circ)) {
+      if (p.y - current_y < -EPS && !circle_contains_seeds(circ, seeds, N)) {
         add_event_if_nonexistent(queue, EVENT_VERTEX, p, circ.c, right); 
         //printf("%e\n", p.y-current_y);
       }
@@ -260,18 +260,14 @@ void remove_vertex_events_involving(queue_T *queue, arc_T *arc)
 }
 
 
-int circle_contains_site_event_p(queue_T queue, circle_T circle) 
+int circle_contains_seeds(circle_T circle, point2D_T *seeds, int N) 
 {
-  event_T *event = queue;
-  while (event) {
-    if (event->type == EVENT_SITE) {
-      double d_2 = pow((event->p.x-circle.c.x), 2) + 
-                   pow((event->p.y-circle.c.y), 2);
-      if (d_2 <= circle.R * circle.R) {
+  for (int ii=0; ii<N; ii++) {
+    double d_2 = pow((seeds[ii].x-circle.c.x), 2) + 
+                 pow((seeds[ii].y-circle.c.y), 2);
+    if (d_2 < circle.R * circle.R) {
         return 1;
-      }
     }
-    event = event->next;
   }
 
   return 0;
