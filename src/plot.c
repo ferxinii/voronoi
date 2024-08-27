@@ -137,8 +137,7 @@ void add_bline(FILE *pipe, beachline_T bline, double sweep_y)
     if (bounds.pos == FLT_MAX && bounds.neg < 1) {
       bounds.pos = 1;
     }
-    //bounds.neg = 0;
-    //bounds.pos = 1;
+
     add_parabola(pipe, current->focus, sweep_y, bounds.neg, bounds.pos);
     current = current->right;
   }

@@ -32,7 +32,6 @@
 
 
 
-
 void event_site(queue_T *queue, beachline_T *bline, event_T event, point2D_T *seeds, int N)
 { 
   arc_T *arc_above = find_arc_above(*bline, event.p);
@@ -56,16 +55,16 @@ void event_vertex(queue_T *queue, beachline_T *bline, event_T event, point2D_T *
 
 site_T *fortune_algorithm(point2D_T *seeds, int N)
 {
-remove_files_in_directory("./frames");
-
+  
+  // OPEN PIPES FOR PLOTTING AND VIDEO
   system("rm -f ./video.mp4");
   FILE *pipe_plot = popen_gnuplot("./plot.png");
   FILE *pipe_video = popen_gnuplot("|ffmpeg -loglevel error -f png_pipe -s:v 1920x1080 -i pipe: -pix_fmt yuv420p -c:v libx264 -crf 18 ./video.mp4");
   start_plot(pipe_plot);
   add_seeds(pipe_plot, seeds, N);
 
-  queue_T queue = initialize_queue(seeds, N);
-
+  // INITIALISE
+  queue_T queue = initialise_queue(seeds, N);
   site_T *sites = initialise_sites(seeds, N);
   beachline_T bline = NULL;
   
@@ -96,9 +95,8 @@ remove_files_in_directory("./frames");
     } else if (event.type == EVENT_VERTEX) {
       event_vertex(&queue, &bline, event, seeds, N);
       add_point(pipe_plot, event.circ_c, "pt 7 ps 3 lc 'red'");
-      //printf("%f, %f\n", event.circ_c.y, event.p.y);
       add_circle(pipe_plot, event.circ_c, event.circ_c.y - event.p.y);
-      //printf("x: %f, y: %f\n", event.circ_c.x, event.circ_c.y);
+      printf("VORONOI VERTEX: x=%f, y=%f\n", event.circ_c.x, event.circ_c.y);
     } else {
       printf("ERROR! Unknown event! Should never see this...\n");
       exit(1);

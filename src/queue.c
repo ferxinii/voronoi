@@ -70,7 +70,7 @@ event_T *new_event(enum event_type type, point2D_T p, arc_T *arc)
 }
 
 
-queue_T initialize_queue(const point2D_T *seeds, int N)
+queue_T initialise_queue(const point2D_T *seeds, int N)
 {
   enum event_type type = EVENT_SITE;
   
