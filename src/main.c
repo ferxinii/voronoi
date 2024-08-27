@@ -41,7 +41,7 @@ int main(int argc, char **argv)
   if (argc == 2) {
     N = atoi(argv[1]);
   } else if (argc > 2) {
-    printf("Too many arguments!!\n Only input the number of seeds\n");
+    printf("Too many arguments!!\nOnly input the number of seeds\n");
     exit(1);
   }
   point2D_T *seeds = random_seeds(1, N);

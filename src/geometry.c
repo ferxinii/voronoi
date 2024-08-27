@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <math.h>
 
+
 point2D_T *random_seeds(double size, int N)
 {
   point2D_T *seeds = calloc(N, sizeof(point2D_T));
