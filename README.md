@@ -17,6 +17,8 @@ As such, the code generates some random seeds and produces a video output (using
 # EXAMPLE OF CURRENT OUTPUT
 <p align="center">
   <img src="./examples/video.gif" alt="Example GIF">
+</p>
+<p align="center">
   <img src="./examples/plot.png" alt="Example of Voronoi vertices">
 </p>
 
